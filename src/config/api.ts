@@ -1,8 +1,14 @@
 import axios from "axios";
 
 let baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+// Ensure baseURL is an absolute URL and correctly formatted with /api
+if (baseURL && !baseURL.startsWith('http')) {
+    console.error("VITE_API_URL must be an absolute URL starting with http:// or https://");
+}
+
 if (!baseURL.endsWith("/api") && !baseURL.endsWith("/api/")) {
-    baseURL = baseURL.endsWith("/") ? `${baseURL}api` : `${baseURL}/api`;
+    baseURL = baseURL.trim().replace(/\/$/, '') + "/api";
 }
 
 const api = axios.create({
