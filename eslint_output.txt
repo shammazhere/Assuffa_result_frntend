@@ -1,0 +1,21 @@
+
+C:\Users\Admin\Downloads\suffa result\frontend\src\context\AuthContext.tsx
+  81:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\Admin\Downloads\suffa result\frontend\src\pages\StudentResult.tsx
+   21:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Admin\Downloads\suffa result\frontend\src\pages\admin\ClassesManager.tsx
+  40:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Admin\Downloads\suffa result\frontend\src\pages\admin\StudentsManager.tsx
+  116:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  128:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Admin\Downloads\suffa result\frontend\src\pages\admin\SubjectsManager.tsx
+  83:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  95:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Γ£û 8 problems (0 errors, 8 warnings)
+
