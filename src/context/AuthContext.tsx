@@ -5,7 +5,7 @@ import type { StudentItem } from '../types';
 interface AuthContextType {
     student: StudentItem | null;
     adminToken: string | null;
-    studentLogin: (usn: string, dob: string) => Promise<void>;
+    studentLogin: (usn: string, dob: string) => Promise<StudentItem>;
     adminLogin: (username: string, password: string) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
@@ -42,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const response = await api.post('/auth/student/login', { usn, dob });
             setStudent(response.data);
+            return response.data;
         } finally {
             setIsLoading(false);
         }

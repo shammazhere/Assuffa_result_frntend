@@ -169,7 +169,7 @@ const StudentsManager: React.FC = () => {
                         >
                             <option value="">All</option>
                             {classes.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                                <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
                             ))}
                         </select>
                     </div>
@@ -254,7 +254,7 @@ const StudentsManager: React.FC = () => {
                         >
                             {classes.length === 0 && <option value="">No classes</option>}
                             {classes.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                                <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
                             ))}
                         </select>
                     </div>
@@ -294,9 +294,15 @@ const StudentsManager: React.FC = () => {
                                     <td className="px-6 py-4 whitespace-nowrap font-bold text-black border-r border-gray-100">{s.first_name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono font-bold tracking-wider border-r border-gray-100">{s.usn}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm border-r border-gray-100">
-                                        <span className="bg-yellow-100/80 text-yellow-900 border border-yellow-300 shadow-sm px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest">
-                                            {s.class?.name || 'Unknown Class'}
-                                        </span>
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-black font-black uppercase text-[11px] tracking-widest">{s.class?.name || 'Unknown Class'}</span>
+                                            <span className={`w-fit px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${s.class?.type === 'Online'
+                                                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                                : 'bg-green-100 text-green-700 border border-green-200'
+                                                }`}>
+                                                {s.class?.type || 'Offline'}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button

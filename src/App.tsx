@@ -6,6 +6,7 @@ import { ProtectedAdminRoute, ProtectedStudentRoute } from './components/Protect
 // Lazy load pages for better performance
 const StudentLogin = React.lazy(() => import('./pages/StudentLogin'));
 const StudentResult = React.lazy(() => import('./pages/StudentResult'));
+const StudentResultOnline = React.lazy(() => import('./pages/StudentResultOnline'));
 const AdminLogin = React.lazy(() => import('./pages/admin/AdminLogin'));
 const AdminDashboard = React.lazy(() => import('./layouts/AdminDashboard'));
 const ClassesManager = React.lazy(() => import('./pages/admin/ClassesManager'));
@@ -26,6 +27,7 @@ function App() {
             {/* Protected Student Routes */}
             <Route element={<ProtectedStudentRoute />}>
               <Route path="/result" element={<StudentResult />} />
+              <Route path="/online-result" element={<StudentResultOnline />} />
             </Route>
 
             {/* Protected Admin Routes */}

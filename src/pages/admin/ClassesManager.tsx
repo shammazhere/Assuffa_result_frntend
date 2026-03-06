@@ -7,6 +7,7 @@ import StatusAlert from '../../components/admin/StatusAlert';
 const ClassesManager: React.FC = () => {
     const [classes, setClasses] = useState<ClassItem[]>([]);
     const [newClassName, setNewClassName] = useState('');
+    const [newClassType, setNewClassType] = useState<'Offline' | 'Online'>('Offline');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -31,11 +32,15 @@ const ClassesManager: React.FC = () => {
         if (!newClassName.trim()) return;
 
         try {
-            const response = await api.post('/admin/classes', { name: newClassName.trim() });
+            const response = await api.post('/admin/classes', {
+                name: newClassName.trim(),
+                type: newClassType
+            });
             setClasses([...classes, response.data]);
             setNewClassName('');
+            setNewClassType('Offline');
             setError('');
-            setSuccess(`Class "${newClassName.trim()}" added successfully.`);
+            setSuccess(`Class "${newClassName.trim()}" (${newClassType}) added successfully.`);
             setTimeout(() => setSuccess(''), 5000);
         } catch (err: any) {
             setError(err.response?.data?.error || 'Failed to add class. Ensure the name is unique.');
@@ -94,6 +99,18 @@ const ClassesManager: React.FC = () => {
                         required
                     />
                 </div>
+                <div className="w-full sm:w-48 relative">
+                    <label htmlFor="classType" className="block text-xs font-black text-black uppercase tracking-widest mb-2 pl-1 border-b border-yellow-200 inline-block pb-1">Class Type</label>
+                    <select
+                        id="classType"
+                        value={newClassType}
+                        onChange={(e) => setNewClassType(e.target.value as 'Offline' | 'Online')}
+                        className="w-full px-4 py-3 bg-white border-2 border-yellow-200 rounded-lg focus:ring-0 focus:border-yellow-500 transition-shadow outline-none text-black font-bold appearance-none"
+                    >
+                        <option value="Offline">Offline</option>
+                        <option value="Online">Online</option>
+                    </select>
+                </div>
                 <div className="flex items-end">
                     <button
                         type="submit"
@@ -112,6 +129,9 @@ const ClassesManager: React.FC = () => {
                             <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest">
                                 Class Name
                             </th>
+                            <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-l border-yellow-200">
+                                Mode
+                            </th>
                             <th className="px-6 py-4 text-right text-xs font-black text-black uppercase tracking-widest w-32 border-l border-yellow-200">
                                 Actions
                             </th>
@@ -129,6 +149,14 @@ const ClassesManager: React.FC = () => {
                                 <tr key={c.id} className="hover:bg-yellow-50/30 transition-colors">
                                     <td className="px-6 py-5 whitespace-nowrap font-black text-black text-base border-r border-gray-100">
                                         {c.name}
+                                    </td>
+                                    <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${c.type === 'Online'
+                                                ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                                : 'bg-green-100 text-green-700 border border-green-200'
+                                            }`}>
+                                            {c.type}
+                                        </span>
                                     </td>
                                     <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
                                         <button

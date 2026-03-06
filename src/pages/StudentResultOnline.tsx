@@ -15,7 +15,7 @@ const gradeColor = (grade: string | undefined) => {
     return { bg: '#FEF2F2', color: '#991B1B', border: '#FECACA' };
 };
 
-const StudentResult: React.FC = () => {
+const StudentResultOnline: React.FC = () => {
     const { student, logout } = useAuth();
     const navigate = useNavigate();
     const printRef = useRef<HTMLDivElement>(null);
@@ -26,8 +26,8 @@ const StudentResult: React.FC = () => {
     const typedStudent = student as unknown as StudentItem;
 
     useEffect(() => {
-        if (typedStudent.classType === 'Online') {
-            navigate('/online-result');
+        if (typedStudent.classType !== 'Online') {
+            navigate('/result');
         }
     }, [typedStudent, navigate]);
 
@@ -171,8 +171,8 @@ const StudentResult: React.FC = () => {
                                 backdropFilter: 'blur(5px)'
                             }}>
                                 <img
-                                    src="/ibis-logo.png"
-                                    alt="International Board of Islamic Studies Logo"
+                                    src="/online-logo.png"
+                                    alt="Online Nurture English Medium Madrasa Logo"
                                     style={{
                                         maxHeight: '90px',
                                         maxWidth: '250px', // Wider max width
@@ -189,7 +189,7 @@ const StudentResult: React.FC = () => {
                             textTransform: 'uppercase', margin: 0,
                             textShadow: '0 2px 10px rgba(255,255,255,0.5)'
                         }}>
-                            INTERNATIONAL BOARD OF ISLAMIC STUDIES
+                            ONLINE NURTURE ENGLISH MEDIUM MADRASA
                         </h1>
                         <p style={{
                             position: 'relative', zIndex: 1,
@@ -366,4 +366,4 @@ const StudentResult: React.FC = () => {
     );
 };
 
-export default StudentResult;
+export default StudentResultOnline;

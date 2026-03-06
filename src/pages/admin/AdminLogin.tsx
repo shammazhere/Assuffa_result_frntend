@@ -72,16 +72,34 @@ const AdminLogin: React.FC = () => {
                 </div>
 
                 <h1 style={{
-                    textAlign: 'center', fontSize: '1.4rem',
-                    fontWeight: 900, color: '#000',
-                    letterSpacing: '0.04em', marginBottom: '0.5rem',
+                    textAlign: 'center', fontSize: '1.6rem',
+                    fontWeight: 900, color: '#CA8A04',
+                    letterSpacing: '0.04em', marginBottom: '0',
+                    lineHeight: '1.1',
                     textTransform: 'uppercase',
                 }}>
-                    AS-SWUFFAH FOUNDATION
+                    DAARU-SSWUFFAH
                 </h1>
+                <div style={{
+                    textAlign: 'center', fontSize: '0.85rem',
+                    fontWeight: 900, color: '#CA8A04',
+                    letterSpacing: '0.1em', marginBottom: '0.2rem',
+                    lineHeight: '1.2',
+                    textTransform: 'uppercase',
+                }}>
+                    center of excellence
+                </div>
+                <div style={{
+                    textAlign: 'center', fontSize: '0.75rem',
+                    fontWeight: 500, color: '#000',
+                    letterSpacing: '0.08em', marginBottom: '0.8rem',
+                    textTransform: 'uppercase',
+                }}>
+                    Jeppu, Mangalore
+                </div>
                 <h2 style={{
                     textAlign: 'center', fontSize: '1rem',
-                    fontWeight: 800, color: '#0f172a',
+                    fontWeight: 800, color: '#CA8A04',
                     letterSpacing: '0.1em', marginBottom: '0.5rem',
                     textTransform: 'uppercase',
                 }}>
@@ -89,11 +107,11 @@ const AdminLogin: React.FC = () => {
                 </h2>
                 <p style={{
                     textAlign: 'center', fontSize: '0.8rem',
-                    color: '#555', fontWeight: 600,
+                    color: '#222', fontWeight: 700,
                     marginBottom: '1.75rem', letterSpacing: '0.06em',
                 }}>
-                    Secure access for administrators.<br />
-                    <span style={{ color: '#0f172a', fontWeight: 700, fontStyle: 'italic', display: 'inline-block', marginTop: '0.4rem' }}>"Empowering education, ensuring excellence."</span>
+                    "Empowering education, ensuring excellence."<br />
+                    <span style={{ color: '#CA8A04', fontWeight: 700, fontStyle: 'italic', display: 'inline-block', marginTop: '0.4rem' }}>Secure access for administrators.</span>
                 </p>
 
                 {error && (

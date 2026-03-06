@@ -191,7 +191,7 @@ const MarksManager: React.FC = () => {
                         >
                             {classes.length === 0 && <option value="">No classes available</option>}
                             {classes.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                                <option key={c.id} value={c.id}>{c.name} ({c.type})</option>
                             ))}
                         </select>
                     </div>

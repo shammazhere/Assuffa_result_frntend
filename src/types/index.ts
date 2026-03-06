@@ -1,6 +1,7 @@
 export interface ClassItem {
     id: string;
     name: string;
+    type: "Offline" | "Online";
 }
 
 export interface SubjectItem {
@@ -16,7 +17,8 @@ export interface StudentItem {
     usn: string;
     class_id?: string;
     className?: string; // For student portal
-    class?: { name: string }; // For admin portal
+    classType?: "Offline" | "Online"; // For redirection logic
+    class?: { name: string; type: "Offline" | "Online" }; // For admin portal
     marks?: MarkItem[];
 }
 

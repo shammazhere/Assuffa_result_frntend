@@ -21,11 +21,15 @@ const StudentLogin: React.FC = () => {
             }
             const parts = dob.split('/');
             const formattedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
-            await studentLogin(usn, formattedDob);
-            navigate('/result');
+            const studentData = await studentLogin(usn, formattedDob);
+            if (studentData.classType === 'Online') {
+                navigate('/online-result');
+            } else {
+                navigate('/result');
+            }
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            setError(msg || 'Invalid USN or Date of Birth. Please try again.');
+            setError(msg || 'Invalid Register Number or Date of Birth. Please try again.');
         }
     };
 
@@ -78,13 +82,31 @@ const StudentLogin: React.FC = () => {
                 </div>
 
                 <h1 style={{
-                    textAlign: 'center', fontSize: '1.4rem',
-                    fontWeight: 900, color: '#000',
-                    letterSpacing: '0.04em', marginBottom: '0.5rem',
+                    textAlign: 'center', fontSize: '1.6rem',
+                    fontWeight: 900, color: '#CA8A04',
+                    letterSpacing: '0.04em', marginBottom: '0',
+                    lineHeight: '1.1',
                     textTransform: 'uppercase',
                 }}>
-                    AS-SWUFFAH FOUNDATION
+                    DAARU-SSWUFFAH
                 </h1>
+                <div style={{
+                    textAlign: 'center', fontSize: '0.85rem',
+                    fontWeight: 900, color: '#CA8A04',
+                    letterSpacing: '0.1em', marginBottom: '0.2rem',
+                    lineHeight: '1.2',
+                    textTransform: 'uppercase',
+                }}>
+                    center of excellence
+                </div>
+                <div style={{
+                    textAlign: 'center', fontSize: '0.75rem',
+                    fontWeight: 500, color: '#000',
+                    letterSpacing: '0.08em', marginBottom: '0.8rem',
+                    textTransform: 'uppercase',
+                }}>
+                    Jeppu, Mangalore
+                </div>
                 <h2 style={{
                     textAlign: 'center', fontSize: '1rem',
                     fontWeight: 800, color: '#CA8A04',
@@ -95,10 +117,10 @@ const StudentLogin: React.FC = () => {
                 </h2>
                 <p style={{
                     textAlign: 'center', fontSize: '0.8rem',
-                    color: '#555', fontWeight: 600,
+                    color: '#222', fontWeight: 700,
                     marginBottom: '1.75rem', letterSpacing: '0.06em',
                 }}>
-                    Please sign in to view your academic results.<br />
+                    "Empowering education, ensuring excellence."<br />
                     <span style={{ color: '#CA8A04', fontWeight: 700, fontStyle: 'italic', display: 'inline-block', marginTop: '0.4rem' }}>"Wishing you all the best of luck!"</span>
                 </p>
 
@@ -122,14 +144,14 @@ const StudentLogin: React.FC = () => {
                             borderBottom: '2px solid #EAB308',
                             paddingBottom: '2px',
                         }}>
-                            University Seat Number (USN)
+                            Register Number
                         </label>
                         <input
                             type="text"
                             required
                             value={usn}
                             onChange={(e) => setUsn(e.target.value.toUpperCase())}
-                            placeholder="e.g. 1AB20CS001"
+                            placeholder="Enter Register Number"
                             style={{
                                 width: '100%', padding: '0.75rem 1rem',
                                 border: '2px solid #FDE68A', borderRadius: '0.5rem',
