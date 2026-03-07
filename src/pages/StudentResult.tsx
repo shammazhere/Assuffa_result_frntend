@@ -36,29 +36,45 @@ const StudentResult: React.FC = () => {
         setIsDownloading(true);
 
         try {
-            // Give a tiny bit of time for any styles to settle
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Create a temporary container for capturing a high-quality version
+            const original = printRef.current;
+            const clone = original.cloneNode(true) as HTMLDivElement;
 
-            const canvas = await html2canvas(printRef.current, {
-                scale: 2, // Higher quality
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff'
+            Object.assign(clone.style, {
+                width: '850px',
+                position: 'fixed',
+                top: '-9999px',
+                left: '-9999px',
+                borderRadius: '0',
+                boxShadow: 'none',
+                overflow: 'visible'
             });
 
-            const imgData = canvas.toDataURL('image/png');
+            document.body.appendChild(clone);
+
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            const canvas = await html2canvas(clone, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff',
+                windowWidth: 850
+            });
+
+            document.body.removeChild(clone);
+
+            const imgData = canvas.toDataURL('image/png', 1.0);
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
                 format: 'a4'
             });
 
-            const imgWidth = 210; // A4 width in mm
+            const imgWidth = 210;
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-            // If the content is taller than A4, we still fit it on one page or scale it
-            // For results, usually it fits on one page.
-            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
             pdf.save(`${typedStudent.first_name}_Result.pdf`);
         } catch (error) {
             console.error('Download failed:', error);
@@ -86,51 +102,54 @@ const StudentResult: React.FC = () => {
     return (
         <div style={{
             minHeight: '100vh',
+            backgroundColor: '#FAFAF9',
             backgroundImage: "url('/islamic-gold-bg.png')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
+            backgroundAttachment: 'fixed',
             backgroundRepeat: 'no-repeat',
-            padding: '2rem 1rem',
+            padding: '1.5rem 0.75rem',
             position: 'relative',
         }}>
             {/* Overlay */}
             <div style={{
                 position: 'fixed', inset: 0,
-                background: 'rgba(255, 255, 255, 0.85)',
-                backdropFilter: 'blur(4px)',
+                background: 'rgba(255, 255, 255, 0.88)',
+                backdropFilter: 'blur(2px)',
                 zIndex: 0,
             }} />
 
             <div style={{ maxWidth: '900px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
                 {/* Action Buttons */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginBottom: '1.5rem' }} className="print:hidden">
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '1.25rem' }} className="print:hidden">
                     <button
                         onClick={handleDownload}
                         disabled={isDownloading}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            padding: '0.6rem 1.25rem',
-                            background: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)',
-                            color: '#92400E', fontWeight: 800, fontSize: '0.85rem',
-                            border: '1px solid #FDE68A', borderRadius: '0.5rem',
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            padding: '0.6rem 1rem',
+                            background: 'white',
+                            color: '#111827', fontWeight: 800, fontSize: '0.75rem',
+                            border: '2px solid #FCD34D', borderRadius: '0.75rem',
                             cursor: isDownloading ? 'not-allowed' : 'pointer',
-                            boxShadow: '0 2px 8px rgba(245, 158, 11, 0.2)',
+                            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.14)',
                             opacity: isDownloading ? 0.7 : 1,
+                            transition: 'all 0.2s ease'
                         }}
                     >
-                        <Download style={{ width: 16, height: 16 }} />
-                        {isDownloading ? 'Generating PDF...' : 'Download Result'}
+                        <Download style={{ width: 14, height: 14 }} />
+                        {isDownloading ? 'PREPARING...' : 'DOWNLOAD'}
                     </button>
                     <button
                         onClick={logout}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            padding: '0.6rem 1.25rem',
-                            background: '#FEF2F2', color: '#B91C1C', fontWeight: 700, fontSize: '0.85rem',
-                            border: '1px solid #FECACA', borderRadius: '0.5rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            padding: '0.6rem 1rem',
+                            background: '#FEF2F2', color: '#B91C1C', fontWeight: 800, fontSize: '0.75rem',
+                            border: '1px solid #FECACA', borderRadius: '0.75rem', cursor: 'pointer',
                         }}
                     >
-                        <LogOut style={{ width: 16, height: 16 }} /> Logout
+                        <LogOut style={{ width: 14, height: 14 }} /> LOGOUT
                     </button>
                 </div>
 
@@ -140,42 +159,40 @@ const StudentResult: React.FC = () => {
                     style={{
                         background: '#ffffff',
                         borderRadius: '1.5rem',
-                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.3)',
+                        boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(245, 158, 11, 0.3)',
                         overflow: 'hidden',
-                        position: 'relative'
+                        position: 'relative',
+                        width: '100%'
                     }}
                 >
                     {/* Header Premium Gold-to-White Fade */}
                     <div style={{
-                        background: 'linear-gradient(180deg, #FCD34D 0%, #FEF08A 45%, #FFFFFF 100%)',
+                        background: 'linear-gradient(180deg, #FCD34D 0%, #FEF08A 60%, #FFFFFF 100%)',
                         position: 'relative',
-                        padding: 'clamp(2.5rem, 5vw, 4rem) clamp(1rem, 5vw, 2rem) clamp(2rem, 5vw, 3rem)',
+                        padding: 'clamp(2rem, 6vw, 4rem) 1rem clamp(1.5rem, 4vw, 3rem)',
                         textAlign: 'center',
                         overflow: 'hidden',
                     }}>
-                        {/* Shimmering Top Light */}
-                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)' }} />
-
                         <div style={{
                             position: 'relative', zIndex: 1,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            margin: '0 auto 1.75rem',
+                            margin: '0 auto 1.5rem',
                         }}>
                             <div style={{
-                                background: 'rgba(255, 255, 255, 0.9)',
-                                padding: '1rem 2rem',
-                                borderRadius: '1rem', // Rounded rectangle for wide logo
-                                boxShadow: '0 15px 35px rgba(245, 158, 11, 0.3), inset 0 2px 5px rgba(255,255,255,1)',
-                                border: '2px solid rgba(255,255,255,1)',
+                                background: '#fff',
+                                padding: '1rem',
+                                borderRadius: '1.25rem',
+                                boxShadow: '0 10px 25px rgba(245, 158, 11, 0.25)',
+                                border: '2px solid white',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                backdropFilter: 'blur(5px)'
+                                minWidth: '140px'
                             }}>
                                 <img
                                     src="/ibis-logo.png"
-                                    alt="International Board of Islamic Studies Logo"
+                                    alt="Logo"
                                     style={{
-                                        maxHeight: '90px',
-                                        maxWidth: '250px', // Wider max width
+                                        maxHeight: 'clamp(60px, 12vw, 90px)',
+                                        maxWidth: '240px',
                                         objectFit: 'contain'
                                     }}
                                 />
@@ -183,53 +200,50 @@ const StudentResult: React.FC = () => {
                         </div>
                         <h1 style={{
                             position: 'relative', zIndex: 1,
-                            fontSize: 'clamp(1.2rem, 3.5vw, 1.8rem)', fontWeight: 900,
-                            color: '#D97706', // Peach/Creme Gold tone
-                            letterSpacing: '0.12em',
+                            fontSize: 'clamp(1rem, 4.5vw, 1.8rem)', fontWeight: 950,
+                            color: '#92400E',
+                            letterSpacing: '0.05em',
                             textTransform: 'uppercase', margin: 0,
-                            textShadow: '0 2px 10px rgba(255,255,255,0.5)'
+                            lineHeight: 1.2
                         }}>
                             INTERNATIONAL BOARD OF ISLAMIC STUDIES
                         </h1>
                         <p style={{
                             position: 'relative', zIndex: 1,
-                            color: '#B45309', fontWeight: 800, letterSpacing: '0.3em',
-                            textTransform: 'uppercase', fontSize: '0.85rem', margin: '0.75rem 0 0',
+                            color: '#B45309', fontWeight: 800, letterSpacing: '0.2em',
+                            textTransform: 'uppercase', fontSize: '0.75rem', margin: '0.75rem 0 0',
                         }}>
                             Official Statement of Marks
                         </p>
                     </div>
 
                     {/* Student Details */}
-                    <div style={{ padding: 'clamp(1.5rem, 5vw, 2rem)', background: '#FAFAF9', borderBottom: '1px solid #E7E5E4' }}>
+                    <div style={{ padding: 'clamp(1rem, 4vw, 2rem)', background: '#FAFAF9', borderBottom: '1px solid #E7E5E4' }}>
                         <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(3, 1fr)', // Column of 3
-                            gap: '1.25rem'
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                            gap: '0.75rem'
                         }}>
                             {[
                                 { label: 'Student Name', value: typedStudent.first_name },
                                 { label: 'USN / Roll No.', value: typedStudent.usn },
-                                { label: 'Class', value: typedStudent.class?.name || 'N/A' },
-                                { label: 'Mode', value: typedStudent.class?.type || 'Offline' },
+                                { label: 'Class / Mode', value: `${typedStudent.class?.name || 'N/A'} (${typedStudent.class?.type || 'Offline'})` },
                                 { label: 'Total Marks', value: `${totalMarks} / ${maxMarks}` },
                                 { label: 'Percentage', value: `${percentage}%` },
                             ].map(item => (
                                 <div key={item.label} style={{
-                                    background: '#fff', padding: '1.25rem',
-                                    borderRadius: '1rem', border: '1px solid rgba(245, 158, 11, 0.3)',
-                                    boxShadow: '0 4px 15px rgba(0,0,0,0.03), inset 0 2px 0 rgba(255,255,255,1)',
-                                    position: 'relative', overflow: 'hidden'
+                                    background: '#fff', padding: '1rem',
+                                    borderRadius: '1rem', border: '1px solid #FDE68A',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                                    display: 'flex', flexDirection: 'column'
                                 }}>
-                                    <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '4px', background: 'linear-gradient(to bottom, #FCD34D, #FDE68A)' }} />
-
                                     <div style={{
-                                        fontSize: '0.65rem', fontWeight: 800,
+                                        fontSize: '0.6rem', fontWeight: 800,
                                         color: '#B45309', letterSpacing: '0.15em',
-                                        textTransform: 'uppercase', marginBottom: '0.5rem',
+                                        textTransform: 'uppercase', marginBottom: '0.25rem',
                                     }}>{item.label}</div>
                                     <div style={{
-                                        fontSize: '1.2rem', fontWeight: 900,
+                                        fontSize: '1.1rem', fontWeight: 900,
                                         color: '#1C1917', wordBreak: 'break-all',
                                     }}>{item.value}</div>
                                 </div>
@@ -238,25 +252,25 @@ const StudentResult: React.FC = () => {
                     </div>
 
                     {/* Marks Table */}
-                    <div style={{ padding: 'clamp(1rem, 5vw, 1.5rem) clamp(1rem, 5vw, 2rem) 2rem' }}>
+                    <div style={{ padding: '1rem clamp(0.75rem, 4vw, 2rem) 2rem' }}>
                         <h2 style={{
-                            fontSize: '0.7rem', fontWeight: 800,
+                            fontSize: '0.65rem', fontWeight: 800,
                             color: '#B45309', letterSpacing: '0.15em',
                             textTransform: 'uppercase', marginBottom: '1rem',
                             borderBottom: '2px solid #FDE68A', paddingBottom: '0.5rem',
-                        }}>Subject-Wise Marks</h2>
+                        }}>Academic Performance</h2>
 
-                        <div style={{ overflowX: 'auto', borderRadius: '0.75rem', border: '2px solid #FDE68A' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <div style={{ overflowX: 'auto', borderRadius: '0.75rem', border: '2px solid #FDE68A', backgroundColor: 'white' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
                                 <thead>
-                                    <tr style={{ background: 'linear-gradient(to right, #D97706, #F59E0B)' }}>
-                                        <th style={{ padding: '1.25rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 900, color: '#fff', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                                            Subject
+                                    <tr style={{ background: '#92400E' }}>
+                                        <th style={{ padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 900, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                                            Subject Description
                                         </th>
-                                        <th style={{ padding: '1.25rem 1.5rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, color: '#fff', letterSpacing: '0.15em', textTransform: 'uppercase', width: '140px' }}>
-                                            Marks / 100
+                                        <th style={{ padding: '1rem 0.75rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 900, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', width: '100px' }}>
+                                            Marks
                                         </th>
-                                        <th style={{ padding: '1.25rem 1.5rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, color: '#fff', letterSpacing: '0.15em', textTransform: 'uppercase', width: '120px' }}>
+                                        <th style={{ padding: '1rem 0.75rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 900, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', width: '100px' }}>
                                             Grade
                                         </th>
                                     </tr>
@@ -267,21 +281,20 @@ const StudentResult: React.FC = () => {
                                             const gc = gradeColor(mark.grade);
                                             return (
                                                 <tr key={idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFFBEB', borderBottom: '1px solid #FDE68A' }}>
-                                                    <td style={{ padding: '1rem 1.5rem', fontWeight: 700, color: '#000', borderRight: '1px solid #FDE68A' }}>
+                                                    <td style={{ padding: '0.85rem 1.25rem', fontWeight: 700, color: '#1F2937', fontSize: '0.9rem' }}>
                                                         {typeof mark.subject === 'object' ? mark.subject.name : (mark.subject || 'N/A')}
                                                     </td>
-                                                    <td style={{ padding: '1rem 1.5rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '1.1rem', borderRight: '1px solid #FDE68A' }}>
+                                                    <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '1rem', background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
                                                         {mark.total}
                                                     </td>
-                                                    <td style={{ padding: '0.75rem 1.5rem', textAlign: 'center' }}>
+                                                    <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }}>
                                                         <span style={{
                                                             display: 'inline-block',
-                                                            padding: '0.3rem 1rem',
-                                                            borderRadius: '9999px',
+                                                            padding: '0.2rem 0.75rem',
+                                                            borderRadius: '0.5rem',
                                                             background: gc.bg, color: gc.color,
                                                             border: `1px solid ${gc.border}`,
-                                                            fontWeight: 900, fontSize: '0.8rem',
-                                                            letterSpacing: '0.1em',
+                                                            fontWeight: 900, fontSize: '0.75rem',
                                                         }}>{mark.grade}</span>
                                                     </td>
                                                 </tr>
@@ -290,22 +303,21 @@ const StudentResult: React.FC = () => {
                                     ) : (
                                         <tr>
                                             <td colSpan={3} style={{ padding: '3rem', textAlign: 'center', color: '#9CA3AF', fontStyle: 'italic' }}>
-                                                No results published yet.
+                                                No marks records found.
                                             </td>
                                         </tr>
                                     )}
                                 </tbody>
-                                {/* Total Row */}
                                 {typedStudent.marks && typedStudent.marks.length > 0 && (
                                     <tfoot>
-                                        <tr style={{ background: '#FFFBEB', borderTop: '2px solid #FBBF24' }}>
-                                            <td style={{ padding: '1rem 1.5rem', fontWeight: 900, color: '#000', textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '0.05em', borderRight: '1px solid #FDE68A' }}>
-                                                Total Aggregate
+                                        <tr style={{ background: '#FFFBE6' }}>
+                                            <td style={{ padding: '1rem 1.25rem', fontWeight: 900, color: '#92400E', textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                                                Aggregate Score
                                             </td>
-                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '1.2rem', borderRight: '1px solid #FDE68A' }}>
+                                            <td style={{ padding: '1rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '1.1rem' }}>
                                                 {totalMarks} / {maxMarks}
                                             </td>
-                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'center', fontWeight: 900, color: '#B45309', fontSize: '1rem' }}>
+                                            <td style={{ padding: '1rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#B45309', fontSize: '1.1rem' }}>
                                                 {percentage}%
                                             </td>
                                         </tr>
@@ -316,27 +328,28 @@ const StudentResult: React.FC = () => {
 
                         {/* Detached Final Result Section */}
                         <div style={{
-                            marginTop: '1.5rem',
+                            marginTop: '1.25rem',
                             background: finalResult.bg,
-                            padding: '1.5rem 2rem',
+                            padding: '1.25rem',
                             borderRadius: '1rem',
-                            border: `2px solid ${finalResult.color}33`, // Low opacity border
+                            border: `2px solid ${finalResult.color}22`,
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            boxShadow: '0 4px 15px rgba(0,0,0,0.03)'
+                            flexWrap: 'wrap',
+                            gap: '1rem'
                         }}>
                             <div>
                                 <h3 style={{
-                                    fontSize: '0.8rem', fontWeight: 800, color: '#B45309',
-                                    letterSpacing: '0.2em', textTransform: 'uppercase', margin: '0 0 0.25rem 0'
-                                }}>Statement of Result</h3>
-                                <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>Final outcome based on official aggregate.</p>
+                                    fontSize: '0.7rem', fontWeight: 800, color: '#B45309',
+                                    letterSpacing: '0.15em', textTransform: 'uppercase', margin: '0 0 0.1rem 0'
+                                }}>FINAL RESULT STATUS</h3>
+                                <p style={{ fontSize: '0.7rem', color: '#6B7280', fontWeight: 600, margin: 0 }}>Verified Statement of Marks</p>
                             </div>
                             <div style={{
-                                fontSize: '1.8rem', fontWeight: 950,
+                                fontSize: 'clamp(1.2rem, 5vw, 1.8rem)', fontWeight: 950,
                                 color: finalResult.color,
-                                letterSpacing: '0.05em',
+                                letterSpacing: '0.02em',
                                 textAlign: 'right'
                             }}>
                                 {finalResult.text}
@@ -348,21 +361,22 @@ const StudentResult: React.FC = () => {
                             marginTop: '2rem', paddingTop: '1.5rem',
                             borderTop: '1px solid #E5E7EB',
                             display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-                            flexWrap: 'wrap', gap: '1.5rem',
+                            flexWrap: 'wrap', gap: '2rem',
                         }}>
-                            <div style={{ fontSize: '0.75rem', color: '#9CA3AF', lineHeight: 1.6 }}>
-                                <p>Date Printed: {new Date().toLocaleDateString()}</p>
-                                <p>This is a system generated document.</p>
+                            <div style={{ fontSize: '0.65rem', color: '#9CA3AF', fontWeight: 600 }}>
+                                <p style={{ margin: '0 0 0.2rem 0' }}>Date Issued: {new Date().toLocaleDateString('en-GB')}</p>
+                                <p style={{ margin: 0 }}>System-Generated Verified Document.</p>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ width: '180px', borderBottom: '1px solid #374151', marginBottom: '0.4rem' }} />
-                                <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151' }}>Controller of Examinations</p>
+                                <div style={{ width: '160px', borderBottom: '2px solid #374151', marginBottom: '0.5rem' }} />
+                                <p style={{ fontSize: '0.7rem', fontWeight: 900, color: '#1F2937', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Controller of Examinations</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div >
+
     );
 };
 

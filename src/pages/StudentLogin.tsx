@@ -46,6 +46,7 @@ const StudentLogin: React.FC = () => {
                 justifyContent: 'center',
                 padding: '1rem',
                 position: 'relative',
+                overflow: 'hidden'
             }}
         >
             {/* Dark overlay */}
