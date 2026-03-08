@@ -260,17 +260,17 @@ const StudentResult: React.FC = () => {
                             borderBottom: '2px solid #FDE68A', paddingBottom: '0.5rem',
                         }}>Academic Performance</h2>
 
-                        <div style={{ overflowX: 'auto', borderRadius: '0.75rem', border: '2px solid #FDE68A', backgroundColor: 'white' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
+                        <div style={{ borderRadius: '0.75rem', border: '2px solid #FDE68A', backgroundColor: 'white' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr style={{ background: '#92400E' }}>
-                                        <th style={{ padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 900, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                                        <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 900, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                                             Subject Description
                                         </th>
-                                        <th style={{ padding: '1rem 0.75rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 900, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', width: '100px' }}>
+                                        <th style={{ padding: '0.75rem 0.25rem', textAlign: 'center', fontSize: '0.65rem', fontWeight: 900, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', width: '60px' }}>
                                             Marks
                                         </th>
-                                        <th style={{ padding: '1rem 0.75rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 900, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', width: '100px' }}>
+                                        <th style={{ padding: '0.75rem 0.25rem', textAlign: 'center', fontSize: '0.65rem', fontWeight: 900, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', width: '60px' }}>
                                             Grade
                                         </th>
                                     </tr>
@@ -281,10 +281,10 @@ const StudentResult: React.FC = () => {
                                             const gc = gradeColor(mark.grade);
                                             return (
                                                 <tr key={idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFFBEB', borderBottom: '1px solid #FDE68A' }}>
-                                                    <td style={{ padding: '0.85rem 1.25rem', fontWeight: 700, color: '#1F2937', fontSize: '0.9rem' }}>
+                                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 700, color: '#1F2937', fontSize: '0.8rem', lineHeight: '1.2' }}>
                                                         {typeof mark.subject === 'object' ? mark.subject.name : (mark.subject || 'N/A')}
                                                     </td>
-                                                    <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '1rem', background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
+                                                    <td style={{ padding: '0.75rem 0.25rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '0.9rem', background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
                                                         {mark.total}
                                                     </td>
                                                     <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }}>
