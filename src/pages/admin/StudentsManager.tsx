@@ -16,7 +16,7 @@ const StudentsManager: React.FC = () => {
     const [selectedClassId, setSelectedClassId] = useState('');
 
     // Bulk Upload State
-    const [isBulkMode, setIsBulkMode] = useState(false);
+    const [uploadMode, setUploadMode] = useState<'single' | 'bulk' | 'comprehensive'>('single');
     const [bulkFile, setBulkFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,7 +143,6 @@ const StudentsManager: React.FC = () => {
             complete: async (results) => {
                 const rows = results.data as string[][];
 
-                // Expecting at least: Name, RegNo, DOB (DD/MM/YYYY)
                 const formattedData = rows.map(row => {
                     const name = row[0]?.trim();
                     const regNo = row[1]?.trim().toUpperCase();
@@ -151,7 +150,6 @@ const StudentsManager: React.FC = () => {
 
                     if (!name || !regNo || !rawDob) return null;
 
-                    // Standardize DOB format
                     let dobValue = rawDob;
                     if (rawDob.includes('/')) {
                         const [d, m, y] = rawDob.split('/');
@@ -180,6 +178,64 @@ const StudentsManager: React.FC = () => {
                     fetchInitialData();
                 } catch (err: any) {
                     setError(err.response?.data?.error || 'Bulk upload failed. Check CSV formatting.');
+                } finally {
+                    setIsProcessing(false);
+                }
+            }
+        });
+    };
+
+    const processComprehensiveUpload = async () => {
+        if (!bulkFile) { setError('Please select a CSV file first.'); return; }
+
+        setIsProcessing(true);
+        setError('');
+
+        Papa.parse(bulkFile, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                const rows = results.data as any[];
+
+                const formattedData = rows.map(row => {
+                    const first_name = row['Name'] || row['name'] || row['Student Name'];
+                    const usn = row['USN'] || row['usn'] || row['Register Number'] || row['Reg No'];
+                    const dob = row['DOB'] || row['dob'] || row['Date of Birth'];
+                    const class_name = row['Class'] || row['class'] || row['ClassName'];
+
+                    if (!first_name || !usn || !dob || !class_name) return null;
+
+                    const marks: any[] = [];
+                    Object.keys(row).forEach(key => {
+                        const stdKeys = ['Name', 'name', 'Student Name', 'USN', 'usn', 'Register Number', 'Reg No', 'DOB', 'dob', 'Date of Birth', 'Class', 'class', 'ClassName'];
+                        if (!stdKeys.includes(key) && row[key]) {
+                            const val = parseInt(row[key]);
+                            if (!isNaN(val)) {
+                                marks.push({
+                                    subject_name: key,
+                                    total: val
+                                });
+                            }
+                        }
+                    });
+
+                    return { first_name, usn, dob, class_name, marks };
+                }).filter(s => s !== null);
+
+                if (formattedData.length === 0) {
+                    setError('Invalid headers in CSV. Ensure columns: Name, USN, DOB, Class are present.');
+                    setIsProcessing(false);
+                    return;
+                }
+
+                try {
+                    const response = await api.post('/admin/bulk-complete', formattedData);
+                    setSuccess(`Comprehensive Import finished! Processed ${response.data.count} student profiles with their respective marks.`);
+                    setBulkFile(null);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                    fetchInitialData();
+                } catch (err: any) {
+                    setError(err.response?.data?.error || 'Full data upload failed. Ensure CSV columns are correct.');
                 } finally {
                     setIsProcessing(false);
                 }
@@ -247,22 +303,28 @@ const StudentsManager: React.FC = () => {
             <StatusAlert type="success" message={success} onClose={() => setSuccess('')} />
 
             {/* Toggle Mode */}
-            <div className="flex gap-2 mb-6">
+            <div className="flex flex-wrap gap-2 mb-6">
                 <button
-                    onClick={() => setIsBulkMode(false)}
-                    className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-tighter transition-all ${!isBulkMode ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}
+                    onClick={() => setUploadMode('single')}
+                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all shadow-sm ${uploadMode === 'single' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}
                 >
                     Single Entry
                 </button>
                 <button
-                    onClick={() => setIsBulkMode(true)}
-                    className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-tighter transition-all ${isBulkMode ? 'bg-yellow-500 text-black' : 'bg-gray-100 text-gray-500'}`}
+                    onClick={() => setUploadMode('bulk')}
+                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all shadow-sm ${uploadMode === 'bulk' ? 'bg-yellow-500 text-black' : 'bg-gray-100 text-gray-500'}`}
                 >
-                    Bulk CSV Upload
+                    Quick Student Upload
+                </button>
+                <button
+                    onClick={() => setUploadMode('comprehensive')}
+                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all shadow-sm ${uploadMode === 'comprehensive' ? 'bg-black text-yellow-400 border-2 border-yellow-400' : 'bg-gray-100 text-gray-500'}`}
+                >
+                    Master Batch Import (Complete Data)
                 </button>
             </div>
 
-            {!isBulkMode ? (
+            {uploadMode === 'single' && (
                 <div className="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border border-yellow-200 shadow-sm mb-10">
                     <h3 className="font-black text-black mb-4 text-sm uppercase tracking-widest flex items-center gap-2">
                         <Plus className="w-4 h-4" /> Add Individual Student
@@ -297,7 +359,9 @@ const StudentsManager: React.FC = () => {
                         </div>
                     </form>
                 </div>
-            ) : (
+            )}
+
+            {uploadMode === 'bulk' && (
                 <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-xl border-2 border-dashed border-gray-300 shadow-sm mb-10">
                     <div className="flex flex-col md:flex-row items-center gap-8">
                         <div className="flex-1">
@@ -370,6 +434,68 @@ const StudentsManager: React.FC = () => {
                                     <p className="text-[9px] text-gray-400 uppercase font-black">Column 3</p>
                                     <p className="text-xs font-bold italic">DD/MM/YYYY</p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {uploadMode === 'comprehensive' && (
+                <div className="bg-gradient-to-br from-black to-slate-900 p-6 rounded-xl border border-yellow-500 shadow-2xl mb-10 overflow-hidden relative">
+                    {/* Decorative Background Icon */}
+                    <div className="absolute top-[-20px] right-[-20px] opacity-10 pointer-events-none">
+                        <Upload className="w-64 h-64 text-yellow-500" />
+                    </div>
+
+                    <div className="flex flex-col lg:flex-row items-center gap-10 relative z-10">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-yellow-500 rounded-lg">
+                                    <CheckCircle2 className="w-6 h-6 text-black" />
+                                </div>
+                                <h3 className="font-black text-yellow-500 text-xl uppercase tracking-[0.2em]">Master Batch Import</h3>
+                            </div>
+
+                            <p className="text-sm text-gray-300 mb-8 font-medium leading-relaxed max-w-2xl">
+                                This elite tool handles <span className="text-yellow-400 font-black">Students + Classes + Subjects + Marks</span> in a single click.
+                                The system uses <span className="italic text-white underline decoration-yellow-500">Header-Based Auto Detection</span> to map your subjects and create missing records automatically.
+                            </p>
+
+                            <div className="flex flex-col sm:flex-row gap-5 mb-8">
+                                <div className="flex-1 relative">
+                                    <input
+                                        type="file"
+                                        accept=".csv"
+                                        onChange={handleFileChange}
+                                        className="hidden"
+                                        ref={fileInputRef}
+                                    />
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="w-full h-16 border-2 border-dashed border-gray-700 bg-black/50 rounded-xl flex items-center px-6 gap-4 text-sm font-bold uppercase text-white hover:border-yellow-500 transition-all group"
+                                    >
+                                        <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center group-hover:bg-yellow-500 transition-colors">
+                                            <FileDown className="w-4 h-4 group-hover:text-black" />
+                                        </div>
+                                        <span className="truncate">{bulkFile ? bulkFile.name : 'Choose Comprehensive CSV...'}</span>
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={processComprehensiveUpload}
+                                    disabled={!bulkFile || isProcessing}
+                                    className="px-8 h-16 bg-yellow-500 text-black rounded-xl font-black uppercase tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.3)] disabled:opacity-30 disabled:grayscale transition-all active:scale-95 flex items-center justify-center min-w-[240px]"
+                                >
+                                    {isProcessing ? 'Verifying & Saving...' : 'Synchronize Whole Batch'}
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {['Name', 'USN', 'DOB', 'Class'].map(header => (
+                                    <div key={header} className="bg-white/5 border border-white/10 px-4 py-3 rounded-lg flex items-center gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-yellow-500 shadow-[0_0_5px_yellow]" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{header}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
