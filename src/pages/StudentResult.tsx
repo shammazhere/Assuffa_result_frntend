@@ -36,36 +36,51 @@ const StudentResult: React.FC = () => {
         setIsDownloading(true);
 
         try {
-            const original = printRef.current;
-            const canvas = await html2canvas(original, {
+            const el = printRef.current;
+
+            // Short delay to ensure DOM is settled
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            const canvas = await html2canvas(el, {
                 scale: 1.5,
                 useCORS: true,
                 allowTaint: false,
                 backgroundColor: '#ffffff',
                 logging: false,
-                windowWidth: 850
+                windowWidth: 850,
+                removeContainer: true,
+                foreignObjectRendering: false
             });
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.9);
-            const pdf = new jsPDF('p', 'mm', 'a4', true);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight, undefined, 'FAST');
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
 
-            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result_${Date.now()}.pdf`;
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const imgProperties = pdf.getImageProperties(imgData);
+            const pdfHeight = (imgProperties.height * pdfWidth) / imgProperties.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+
+            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.pdf`;
             const blob = pdf.output('blob');
             const url = URL.createObjectURL(blob);
+
             const link = document.createElement('a');
+            link.style.display = 'none';
             link.href = url;
-            link.download = fileName;
+            link.setAttribute('download', fileName);
+
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
-            setTimeout(() => URL.revokeObjectURL(url), 100);
+
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 200);
 
         } catch (error) {
-            console.error('Download failed:', error);
-            alert('Download failed. Please try again.');
+            console.error('Capture Error:', error);
+            alert('Could not generate download. Please ensure your browser allows downloads or try taking a screenshot.');
         } finally {
             setIsDownloading(false);
         }

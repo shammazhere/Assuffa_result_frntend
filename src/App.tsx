@@ -4,9 +4,9 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedAdminRoute, ProtectedStudentRoute } from './components/ProtectedRoutes';
 
 // Lazy load pages for better performance
-const StudentLogin = React.lazy(() => import('./pages/StudentLogin'));
-const StudentResult = React.lazy(() => import('./pages/StudentResult'));
-const StudentResultOnline = React.lazy(() => import('./pages/StudentResultOnline'));
+import StudentLogin from './pages/StudentLogin';
+import StudentResult from './pages/StudentResult';
+import StudentResultOnline from './pages/StudentResultOnline';
 const AdminLogin = React.lazy(() => import('./pages/admin/AdminLogin'));
 const AdminDashboard = React.lazy(() => import('./layouts/AdminDashboard'));
 const ClassesManager = React.lazy(() => import('./pages/admin/ClassesManager'));
