@@ -78,7 +78,7 @@ const StudentResult: React.FC = () => {
             pdf.save(`${typedStudent.first_name}_Result.pdf`);
         } catch (error) {
             console.error('Download failed:', error);
-            alert('Failed to generate PDF. Please try again.');
+            alert('Download failed. Please check your browser settings.');
         } finally {
             setIsDownloading(false);
         }
@@ -228,8 +228,6 @@ const StudentResult: React.FC = () => {
                                 { label: 'Student Name', value: typedStudent.first_name },
                                 { label: 'USN / Roll No.', value: typedStudent.usn },
                                 { label: 'Class / Mode', value: `${typedStudent.class?.name || 'N/A'} (${typedStudent.class?.type || 'Offline'})` },
-                                { label: 'Total Marks', value: `${totalMarks} / ${maxMarks}` },
-                                { label: 'Percentage', value: `${percentage}%` },
                             ].map(item => (
                                 <div key={item.label} style={{
                                     background: '#fff', padding: '1rem',
@@ -281,7 +279,7 @@ const StudentResult: React.FC = () => {
                                             const gc = gradeColor(mark.grade);
                                             return (
                                                 <tr key={idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFFBEB', borderBottom: '1px solid #FDE68A' }}>
-                                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 700, color: '#1F2937', fontSize: '0.8rem', lineHeight: '1.2', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+                                                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 800, color: '#1F2937', fontSize: '0.95rem', lineHeight: '1.2', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                                                         {typeof mark.subject === 'object' ? mark.subject.name : (mark.subject || 'N/A')}
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.25rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '0.9rem', background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
@@ -314,8 +312,9 @@ const StudentResult: React.FC = () => {
                                             <td style={{ padding: '1rem 1.25rem', fontWeight: 900, color: '#92400E', textTransform: 'uppercase', fontSize: '0.75rem' }}>
                                                 Aggregate Score
                                             </td>
-                                            <td style={{ padding: '1rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '1.1rem' }}>
-                                                {totalMarks} / {maxMarks}
+                                            <td style={{ padding: '0.75rem 0.25rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '1rem', lineHeight: 1.1 }}>
+                                                <div style={{ fontSize: '0.9rem' }}>{totalMarks} /</div>
+                                                <div style={{ fontSize: '0.9rem', color: '#6B7280' }}>{maxMarks}</div>
                                             </td>
                                             <td style={{ padding: '1rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#B45309', fontSize: '1.1rem' }}>
                                                 {percentage}%
