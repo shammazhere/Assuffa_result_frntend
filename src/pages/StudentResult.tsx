@@ -75,10 +75,13 @@ const StudentResult: React.FC = () => {
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
             pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
-            pdf.save(`${typedStudent.first_name}_Result.pdf`);
+
+            // For mobile compatibility, we use a more direct save approach
+            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.pdf`;
+            pdf.save(fileName);
         } catch (error) {
             console.error('Download failed:', error);
-            alert('Download failed. Please check your browser settings.');
+            alert('PDF generation failed. Please ensure you are not using "Incognito/Private" mode or try a different browser.');
         } finally {
             setIsDownloading(false);
         }
@@ -206,7 +209,7 @@ const StudentResult: React.FC = () => {
                             textTransform: 'uppercase', margin: 0,
                             lineHeight: 1.2
                         }}>
-                            INTERNATIONAL BOARD OF ISLAMIC STUDIES
+                            INTERNATIONAL EDUCATION BOARD
                         </h1>
                         <p style={{
                             position: 'relative', zIndex: 1,
@@ -316,8 +319,9 @@ const StudentResult: React.FC = () => {
                                                 <div style={{ fontSize: '0.9rem' }}>{totalMarks} /</div>
                                                 <div style={{ fontSize: '0.9rem', color: '#6B7280' }}>{maxMarks}</div>
                                             </td>
-                                            <td style={{ padding: '1rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#B45309', fontSize: '1.1rem' }}>
-                                                {percentage}%
+                                            <td style={{ padding: '0.75rem 0.25rem', textAlign: 'center', fontWeight: 900, color: '#B45309', fontSize: '0.85rem' }}>
+                                                <div style={{ fontSize: '0.75rem', marginBottom: '1px' }}>{percentage}%</div>
+                                                <div style={{ fontSize: '0.6rem', color: '#B45309', opacity: 0.8, letterSpacing: '0.05em' }}>GRADE</div>
                                             </td>
                                         </tr>
                                     </tfoot>
