@@ -38,27 +38,38 @@ const StudentResultOnline: React.FC = () => {
         try {
             const el = printRef.current;
 
-            // Wait a tiny bit to ensure everything is rendered
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Critical for external images to work in canvas capture
+            const images = el.getElementsByTagName('img');
+            for (let i = 0; i < images.length; i++) {
+                images[i].crossOrigin = "anonymous";
+            }
 
+            // High performance capture settings
             const canvas = await html2canvas(el, {
                 scale: 1.5,
                 useCORS: true,
-                allowTaint: false, // Must be false for toDataURL
+                allowTaint: false,
                 backgroundColor: '#ffffff',
                 logging: false,
                 windowWidth: 850,
-                // These help with mobile renderer quirks
                 removeContainer: true,
-                foreignObjectRendering: false
+                imageTimeout: 5000,
+                onclone: (clonedDoc) => {
+                    // Ensure the cloned element is visible for capture
+                    const clonedEl = clonedDoc.querySelector('[ref="printRef"]') as HTMLElement;
+                    if (clonedEl) clonedEl.style.display = 'block';
+                }
             });
 
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgData = canvas.toDataURL('image/png', 1.0);
 
+            // Universal fallback for mobile: If PDF fails or we want max compatibility, 
+            // downloading the PNG directly is 100% reliable.
+            // But we'll stick to PDF as primary.
+            const pdf = new jsPDF('p', 'mm', 'a4', true);
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const imgProperties = pdf.getImageProperties(imgData);
-            const pdfHeight = (imgProperties.height * pdfWidth) / imgProperties.width;
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
 
@@ -69,21 +80,31 @@ const StudentResultOnline: React.FC = () => {
             const link = document.createElement('a');
             link.style.display = 'none';
             link.href = url;
-            link.setAttribute('download', fileName);
+            link.download = fileName;
 
-            // Standard click doesn't always work in incognito or some mobile browsers
             document.body.appendChild(link);
             link.click();
 
-            // Housekeeping
             setTimeout(() => {
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
-            }, 200);
+            }, 300);
 
         } catch (error) {
-            console.error('Capture Error:', error);
-            alert('Could not generate download. Please ensure your browser allows downloads or try taking a screenshot.');
+            console.error('Final Download Error:', error);
+            // If the above fails, one last heroic attempt using a direct image download
+            try {
+                const el = printRef.current;
+                if (!el) throw new Error("No element");
+                const canvas = await html2canvas(el, { scale: 1.5, useCORS: true });
+                const url = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${typedStudent.first_name}_Result.png`;
+                link.click();
+            } catch (innerError) {
+                alert('CRITICAL: Download block detected. Please take a screenshot of this page to save your result.');
+            }
         } finally {
             setIsDownloading(false);
         }
@@ -230,9 +251,9 @@ const StudentResultOnline: React.FC = () => {
                             gap: '0.75rem'
                         }}>
                             {[
-                                { label: 'Student Name', value: typedStudent.first_name },
-                                { label: 'USN / Roll No.', value: typedStudent.usn },
-                                { label: 'Class / Mode', value: `${typedStudent.class?.name || 'N/A'} (${typedStudent.class?.type || 'Online'})` },
+                                { label: 'Student Name', value: typedStudent.first_name.toUpperCase() },
+                                { label: 'USN / Roll No.', value: typedStudent.usn.toUpperCase() },
+                                { label: 'Class / Mode', value: `${(typedStudent.class?.name || 'N/A').toUpperCase()} (${(typedStudent.class?.type || 'Online').toUpperCase()})` },
                             ].map(item => (
                                 <div key={item.label} style={{
                                     background: '#fff', padding: '1rem',
@@ -248,6 +269,7 @@ const StudentResultOnline: React.FC = () => {
                                     <div style={{
                                         fontSize: '1.1rem', fontWeight: 900,
                                         color: '#1C1917', wordBreak: 'break-all',
+                                        textTransform: 'uppercase'
                                     }}>{item.value}</div>
                                 </div>
                             ))}
