@@ -194,47 +194,65 @@ const StudentsManager: React.FC = () => {
             const workbook = XLSX.read(data);
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            const rows = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-            const formattedData = rows.map(row => {
-                const first_name = row['Name'] || row['name'] || row['Student Name'];
-                const usn = String(row['USN'] || row['usn'] || row['Register Number'] || row['Reg No'] || '');
-                const dob = String(row['DOB'] || row['dob'] || row['Date of Birth'] || '');
-                const class_name = row['Class'] || row['class'] || row['ClassName'];
-                const class_type = row['Type'] || row['type'] || row['Mode'] || row['ClassType'] || 'Offline';
+            // Get raw rows (array of arrays) to use position-based mapping
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
-                if (!first_name || !usn || !dob || !class_name) return null;
+            if (rows.length < 2) {
+                setError('The file appears to be empty or missing data rows.');
+                setIsProcessing(false);
+                return;
+            }
+
+            // Detect headers from the first row to use for subject names
+            const headers = rows[0].map(h => String(h || '').trim());
+
+            // Process data rows (start from index 1 if index 0 is headers)
+            // If the first row is NOT headers but actual data, we will still handle it
+            // because of the "Name" check.
+            const dataRows = rows.slice(0); // Start from beginning, we'll skip the header row during mapping
+
+            const formattedData = dataRows.map((row, index) => {
+                // Positional Mapping (1st: Name, 2nd: USN, 3rd: DOB, 4th: Class, 5th: Type)
+                const first_name = String(row[0] || '').trim();
+                const usn = String(row[1] || '').trim().toUpperCase();
+                const dob = String(row[2] || '').trim();
+                const class_name = String(row[3] || '').trim();
+                const class_type = String(row[4] || 'Offline').trim();
+
+                // Skip header row if detected
+                if (!first_name || first_name.toLowerCase() === 'name' || first_name.toLowerCase() === 'student name') return null;
+                if (!usn || !dob || !class_name) return null;
 
                 const marks: any[] = [];
-                Object.keys(row).forEach(key => {
-                    const stdKeys = ['Name', 'name', 'Student Name', 'USN', 'usn', 'Register Number', 'Reg No', 'DOB', 'dob', 'Date of Birth', 'Class', 'class', 'ClassName', 'Type', 'type', 'Mode', 'ClassType'];
-                    if (!stdKeys.includes(key) && row[key] !== undefined) {
-                        const val = parseInt(row[key]);
-                        if (!isNaN(val)) {
-                            marks.push({
-                                subject_name: key,
-                                total: val
-                            });
-                        }
+                // Subjects start from the 6th column (index 5)
+                for (let i = 5; i < row.length; i++) {
+                    const subjectName = headers[i] || `Subject ${i - 4}`;
+                    const val = parseInt(row[i]);
+                    if (!isNaN(val)) {
+                        marks.push({
+                            subject_name: subjectName,
+                            total: val
+                        });
                     }
-                });
+                }
 
                 return { first_name, usn, dob, class_name, class_type, marks };
             }).filter(s => s !== null);
 
             if (formattedData.length === 0) {
-                setError('Invalid headers in file. Ensure columns: Name, USN, DOB, Class are present.');
+                setError('Could not parse any valid student records. Ensure Name, USN, DOB, and Class are in the first 4 columns.');
                 setIsProcessing(false);
                 return;
             }
 
             const response = await api.post('/admin/bulk-complete', formattedData);
-            setSuccess(`Comprehensive Import finished! Processed ${response.data.count} profiles with marks.`);
+            setSuccess(`Sync Complete! Processed ${response.data.count} profiles with their marks successfully.`);
             setBulkFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
             fetchInitialData();
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Full data upload failed. Ensure correct headers.');
+            setError(err.response?.data?.error || 'Intelligence Sync failed. Please check your Excel layout.');
         } finally {
             setIsProcessing(false);
         }
