@@ -36,52 +36,83 @@ const StudentResultOnline: React.FC = () => {
         setIsDownloading(true);
 
         try {
-            // Create a temporary container for capturing a high-quality version
-            // This ensures we get a full-width, non-mobile-distorted capture
+            // A4 dimensions at 96 DPI: 210mm x 297mm -> ~794px x 1123px
+            const targetWidth = 800;
+
+            // Create a high-quality clone specifically for capturing
             const original = printRef.current;
             const clone = original.cloneNode(true) as HTMLDivElement;
 
-            // Set styles for the clone to be "desktop-like" for a clean PDF
+            // Apply capture-specific styles to the clone
             Object.assign(clone.style, {
-                width: '850px',
-                position: 'fixed',
-                top: '-9999px',
-                left: '-9999px',
+                width: `${targetWidth}px`,
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                zIndex: '-1',
+                opacity: '1',
                 borderRadius: '0',
                 boxShadow: 'none',
-                overflow: 'visible'
+                margin: '0',
+                padding: '40px', // Consistent padding for PDF
+                transform: 'none',
             });
+
+            // Ensure images in clone are loaded or properly handled
+            const images = clone.getElementsByTagName('img');
+            for (let i = 0; i < images.length; i++) {
+                images[i].crossOrigin = "anonymous";
+            }
 
             document.body.appendChild(clone);
 
-            // Wait a moment for any lazy elements to finalize
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Wait for any rendering/layout to stabilize
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             const canvas = await html2canvas(clone, {
-                scale: 2,
+                scale: 2, // 2x for retina-like sharpness
                 useCORS: true,
-                logging: false,
+                allowTaint: true,
                 backgroundColor: '#ffffff',
-                windowWidth: 850
+                width: targetWidth,
+                windowWidth: targetWidth,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    // Final stylistic tweaks inside the library's own clone if needed
+                    const el = clonedDoc.body.lastChild as HTMLElement;
+                    if (el) el.style.boxShadow = 'none';
+                }
             });
 
             document.body.removeChild(clone);
 
-            const imgData = canvas.toDataURL('image/png', 1.0);
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
-                format: 'a4'
+                format: 'a4',
+                compress: true
             });
 
-            const imgWidth = 210;
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const imgWidth = pdfWidth;
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
-            pdf.save(`${typedStudent.first_name}_Result.pdf`);
+            // If result is very long, it will be scaled to fit one A4 page 
+            // Better to fit on one page for a single-sheet result
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
+
+            // Generate filename
+            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.pdf`;
+
+            // For mobile, .save() can sometimes be silent or blocked. 
+            // We'll also try to open in a new tab if it's potentially failing
+            pdf.save(fileName);
+
         } catch (error) {
             console.error('Download failed:', error);
-            alert('Failed to generate PDF. Please try again.');
+            // Fallback: Trigger standard browser print window which is very reliable on mobile
+            window.print();
         } finally {
             setIsDownloading(false);
         }

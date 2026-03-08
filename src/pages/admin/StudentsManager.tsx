@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../../config/api';
-import { Plus, Trash2, Users } from 'lucide-react';
+import { Plus, Trash2, Users, Upload, FileDown, CheckCircle2 } from 'lucide-react';
 import type { StudentItem, ClassItem } from '../../types';
 import StatusAlert from '../../components/admin/StatusAlert';
+import Papa from 'papaparse';
 
 const StudentsManager: React.FC = () => {
     const [students, setStudents] = useState<StudentItem[]>([]);
@@ -13,6 +14,12 @@ const StudentsManager: React.FC = () => {
     const [usn, setUsn] = useState('');
     const [dob, setDob] = useState('');
     const [selectedClassId, setSelectedClassId] = useState('');
+
+    // Bulk Upload State
+    const [isBulkMode, setIsBulkMode] = useState(false);
+    const [bulkFile, setBulkFile] = useState<File | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Filter & Search State
     const [filterClassId, setFilterClassId] = useState('');
@@ -38,7 +45,7 @@ const StudentsManager: React.FC = () => {
                 setSelectedClassId(classesRes.data[0].id);
             }
         } catch (_err) {
-            setError('Failed to load data');
+            setError('Failed to load initial data. Check your connection.');
         } finally {
             setLoading(false);
         }
@@ -54,7 +61,7 @@ const StudentsManager: React.FC = () => {
             const res = await api.get(url);
             setStudents(res.data);
         } catch (_err) {
-            setError('Failed to filter students');
+            setError('Failed to filter students.');
         }
     };
 
@@ -75,21 +82,17 @@ const StudentsManager: React.FC = () => {
         setError('');
 
         if (!firstName.trim()) { setError('Please enter the student name.'); return; }
-        if (!usn.trim()) { setError('Please enter a USN.'); return; }
+        if (!usn.trim()) { setError('Please enter a Register Number.'); return; }
         if (!selectedClassId) { setError('Please select a class.'); return; }
 
         // Validate DOB format DD/MM/YYYY
         const dobRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
         if (!dobRegex.test(dob)) {
-            setError('Please enter a valid Date of Birth in DD/MM/YYYY format (e.g. 27/03/2007).');
+            setError('Please enter a valid Date of Birth in DD/MM/YYYY format.');
             return;
         }
+
         const [dd, mm, yyyy] = dob.split('/');
-        const dateObj = new Date(`${yyyy}-${mm}-${dd}`);
-        if (isNaN(dateObj.getTime())) {
-            setError('The date entered is not valid. Please check DD/MM/YYYY.');
-            return;
-        }
         const formattedDob = `${yyyy}-${mm}-${dd}`;
 
         try {
@@ -100,13 +103,11 @@ const StudentsManager: React.FC = () => {
                 class_id: selectedClassId
             });
 
-            // Attach the class name locally so it shows immediately without re-fetch
             const createdWithClass: StudentItem = {
                 ...response.data,
                 class: classes.find(c => c.id === selectedClassId)
             };
 
-            // Only add to the visible list if it matches current filters
             const matchesClassFilter = !filterClassId || filterClassId === selectedClassId;
             const matchesUsnFilter = !searchUsn || createdWithClass.usn.includes(searchUsn.toUpperCase());
             if (matchesClassFilter && matchesUsnFilter) {
@@ -116,36 +117,93 @@ const StudentsManager: React.FC = () => {
             setFirstName('');
             setUsn('');
             setDob('');
-            setError('');
             setSuccess(`Student "${firstName.trim()}" registered successfully!`);
-
-            // Auto-clear success message
             setTimeout(() => setSuccess(''), 5000);
-        } catch (err: unknown) {
-            const apiErr = err as { response?: { data?: { error?: string } } };
-            setError(apiErr.response?.data?.error || 'Failed to add student. Ensure the USN is unique.');
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Failed to add student. Ensure Reg No is unique.');
         }
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setBulkFile(e.target.files[0]);
+        }
+    };
+
+    const processBulkUpload = async () => {
+        if (!bulkFile) { setError('Please select a CSV file first.'); return; }
+        if (!selectedClassId) { setError('Please select a target class for this upload.'); return; }
+
+        setIsProcessing(true);
+        setError('');
+
+        Papa.parse(bulkFile, {
+            header: false,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                const rows = results.data as string[][];
+
+                // Expecting at least: Name, RegNo, DOB (DD/MM/YYYY)
+                const formattedData = rows.map(row => {
+                    const name = row[0]?.trim();
+                    const regNo = row[1]?.trim().toUpperCase();
+                    const rawDob = row[2]?.trim();
+
+                    if (!name || !regNo || !rawDob) return null;
+
+                    // Standardize DOB format
+                    let dobValue = rawDob;
+                    if (rawDob.includes('/')) {
+                        const [d, m, y] = rawDob.split('/');
+                        dobValue = `${y}-${m}-${d}`;
+                    }
+
+                    return {
+                        first_name: name,
+                        usn: regNo,
+                        dob: dobValue,
+                        class_id: selectedClassId
+                    };
+                }).filter(s => s !== null);
+
+                if (formattedData.length === 0) {
+                    setError('The CSV file appears to be empty or in the wrong format.');
+                    setIsProcessing(false);
+                    return;
+                }
+
+                try {
+                    const response = await api.post('/admin/students/bulk', formattedData);
+                    setSuccess(`Successfully imported ${response.data.count} students!`);
+                    setBulkFile(null);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                    fetchInitialData();
+                } catch (err: any) {
+                    setError(err.response?.data?.error || 'Bulk upload failed. Check CSV formatting.');
+                } finally {
+                    setIsProcessing(false);
+                }
+            }
+        });
+    };
+
     const deleteStudent = async (id: string) => {
-        if (!window.confirm('Are you sure? This will permanently delete the student and all their academic marks.')) return;
+        if (!window.confirm('Are you sure? This will permanently delete the student and their marks.')) return;
 
         try {
             await api.delete(`/admin/students/${id}`);
             setStudents(prev => prev.filter(s => s.id !== id));
-            setError('');
             setSuccess('Student deleted successfully.');
             setTimeout(() => setSuccess(''), 3000);
-        } catch (err: unknown) {
-            const apiErr = err as { response?: { data?: { error?: string } } };
-            setError(apiErr.response?.data?.error || 'Failed to delete student.');
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Failed to delete student.');
         }
     };
 
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[400px]">
-            <div className="w-12 h-12 border-4 border-yellow-200 border-t-yellow-500 rounded-full animate-spin mb-4 shadow-sm" />
-            <p className="text-black font-black uppercase tracking-widest text-sm animate-pulse">Loading Students Database...</p>
+            <div className="w-12 h-12 border-4 border-yellow-200 border-t-yellow-500 rounded-full animate-spin mb-4" />
+            <p className="text-black font-black uppercase tracking-widest text-sm">Synchronizing Database...</p>
         </div>
     );
 
@@ -156,12 +214,11 @@ const StudentsManager: React.FC = () => {
                     <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center border border-yellow-500 shadow-md">
                         <Users className="w-6 h-6 text-black" />
                     </div>
-                    <h2 className="text-3xl font-black text-black tracking-widest uppercase">Manage Students</h2>
+                    <h2 className="text-3xl font-black text-black tracking-widest uppercase">Students Portal</h2>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
                     <div className="flex items-center rounded-lg bg-yellow-50 border-2 border-yellow-200 p-1.5 shadow-sm">
-                        <span className="px-3 text-xs font-black text-black uppercase tracking-widest">Filter by Class:</span>
                         <select
                             value={filterClassId}
                             onChange={handleFilterChange}
@@ -177,10 +234,10 @@ const StudentsManager: React.FC = () => {
                     <div className="flex items-center rounded-lg bg-yellow-50 border-2 border-yellow-200 p-1.5 shadow-sm">
                         <input
                             type="text"
-                            placeholder="Search Register No..."
+                            placeholder="Search Reg No..."
                             value={searchUsn}
                             onChange={handleSearchChange}
-                            className="px-3 py-1.5 text-sm font-bold bg-white rounded border-0 focus:ring-0 uppercase text-black placeholder-gray-400"
+                            className="px-3 py-1.5 text-sm font-bold bg-white rounded border-0 focus:ring-0 uppercase text-black"
                         />
                     </div>
                 </div>
@@ -189,135 +246,165 @@ const StudentsManager: React.FC = () => {
             <StatusAlert type="error" message={error} onClose={() => setError('')} />
             <StatusAlert type="success" message={success} onClose={() => setSuccess('')} />
 
-            {/* Add Student Form */}
-            <div className="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border border-yellow-200 shadow-sm mb-10">
-                <h3 className="font-black text-black mb-4 text-sm uppercase tracking-widest border-b border-yellow-200 inline-block pb-1 flex items-center gap-2 max-w-max">
-                    <Plus className="w-4 h-4" /> Add New Student
-                </h3>
-
-                <div className="bg-yellow-100/50 border-l-4 border-yellow-500 p-4 mb-6 rounded-r-lg">
-                    <p className="text-sm font-bold text-yellow-900">
-                        Note: The Date of Birth will be used as the student's login password.
-                    </p>
-                </div>
-
-                <form onSubmit={addStudent} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
-                    <div className="flex flex-col">
-                        <label className="block text-xs font-black text-black uppercase tracking-widest mb-1 pl-1">Full Name</label>
-                        <input
-                            type="text"
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                            placeholder="Enter Name"
-                            className="w-full px-4 py-3 bg-white border-2 border-yellow-200 rounded-lg shadow-sm focus:ring-0 focus:border-yellow-500 outline-none text-black font-bold"
-                            required
-                        />
-                    </div>
-                    <div className="flex flex-col">
-                        <label className="block text-xs font-black text-black uppercase tracking-widest mb-1 pl-1">Register Number</label>
-                        <input
-                            type="text"
-                            value={usn}
-                            onChange={(e) => setUsn(e.target.value.toUpperCase())}
-                            placeholder="Enter Reg No"
-                            className="w-full px-4 py-3 bg-white border-2 border-yellow-200 rounded-lg shadow-sm focus:ring-0 focus:border-yellow-500 outline-none text-black font-bold uppercase"
-                            required
-                        />
-                    </div>
-                    <div className="flex flex-col">
-                        <label className="block text-xs font-black text-black uppercase tracking-widest mb-1 pl-1">Date of Birth</label>
-                        <input
-                            type="text"
-                            value={dob}
-                            onChange={(e) => {
-                                const raw = e.target.value.replace(/\D/g, '').slice(0, 8);
-                                let formatted = raw;
-                                if (raw.length > 4) {
-                                    formatted = raw.slice(0, 2) + '/' + raw.slice(2, 4) + '/' + raw.slice(4);
-                                } else if (raw.length > 2) {
-                                    formatted = raw.slice(0, 2) + '/' + raw.slice(2);
-                                }
-                                setDob(formatted);
-                            }}
-                            maxLength={10}
-                            placeholder="DD/MM/YYYY"
-                            className="w-full px-4 py-3 bg-white border-2 border-yellow-200 rounded-lg shadow-sm focus:ring-0 focus:border-yellow-500 outline-none text-black font-bold"
-                            required
-                        />
-                    </div>
-                    <div className="flex flex-col">
-                        <label className="block text-xs font-black text-black uppercase tracking-widest mb-1 pl-1">Class</label>
-                        <select
-                            value={selectedClassId}
-                            onChange={(e) => setSelectedClassId(e.target.value)}
-                            className="w-full px-4 py-3 bg-white border-2 border-yellow-200 rounded-lg shadow-sm focus:ring-0 focus:border-yellow-500 outline-none text-black font-bold cursor-pointer"
-                            required
-                        >
-                            {classes.length === 0 && <option value="">No classes available</option>}
-                            {classes.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex items-end">
-                        <button
-                            type="submit"
-                            disabled={classes.length === 0}
-                            className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-3 rounded-lg hover:from-yellow-500 hover:to-yellow-600 flex items-center justify-center font-extrabold shadow-md border border-yellow-600 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 whitespace-nowrap"
-                        >
-                            <Plus className="w-5 h-5 mr-2" /> <span>Add Student</span>
-                        </button>
-                    </div>
-                </form>
+            {/* Toggle Mode */}
+            <div className="flex gap-2 mb-6">
+                <button
+                    onClick={() => setIsBulkMode(false)}
+                    className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-tighter transition-all ${!isBulkMode ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}
+                >
+                    Single Entry
+                </button>
+                <button
+                    onClick={() => setIsBulkMode(true)}
+                    className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-tighter transition-all ${isBulkMode ? 'bg-yellow-500 text-black' : 'bg-gray-100 text-gray-500'}`}
+                >
+                    Bulk CSV Upload
+                </button>
             </div>
+
+            {!isBulkMode ? (
+                <div className="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border border-yellow-200 shadow-sm mb-10">
+                    <h3 className="font-black text-black mb-4 text-sm uppercase tracking-widest flex items-center gap-2">
+                        <Plus className="w-4 h-4" /> Add Individual Student
+                    </h3>
+                    <form onSubmit={addStudent} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+                        <div className="flex flex-col">
+                            <label className="text-[10px] font-black uppercase mb-1 ml-1">Name</label>
+                            <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Full Name" className="w-full px-4 py-3 bg-white border-2 border-yellow-200 rounded-lg font-bold" />
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-[10px] font-black uppercase mb-1 ml-1">Reg No</label>
+                            <input type="text" value={usn} onChange={e => setUsn(e.target.value.toUpperCase())} placeholder="USN" className="w-full px-4 py-3 bg-white border-2 border-yellow-200 rounded-lg font-bold uppercase" />
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-[10px] font-black uppercase mb-1 ml-1">DOB</label>
+                            <input type="text" value={dob} onChange={e => {
+                                const raw = e.target.value.replace(/\D/g, '').slice(0, 8);
+                                let f = raw;
+                                if (raw.length > 4) f = raw.slice(0, 2) + '/' + raw.slice(2, 4) + '/' + raw.slice(4);
+                                else if (raw.length > 2) f = raw.slice(0, 2) + '/' + raw.slice(2);
+                                setDob(f);
+                            }} placeholder="DD/MM/YYYY" className="w-full px-4 py-3 bg-white border-2 border-yellow-200 rounded-lg font-bold" />
+                        </div>
+                        <div className="flex flex-col">
+                            <label className="text-[10px] font-black uppercase mb-1 ml-1">Class</label>
+                            <select value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-yellow-200 rounded-lg font-bold">
+                                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="flex items-end">
+                            <button type="submit" className="w-full bg-black text-white px-4 py-3 rounded-lg font-black uppercase tracking-widest text-xs hover:bg-gray-800 transition-all active:scale-95 shadow-lg">Save Student</button>
+                        </div>
+                    </form>
+                </div>
+            ) : (
+                <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-xl border-2 border-dashed border-gray-300 shadow-sm mb-10">
+                    <div className="flex flex-col md:flex-row items-center gap-8">
+                        <div className="flex-1">
+                            <h3 className="font-black text-black mb-2 text-sm uppercase tracking-widest flex items-center gap-2">
+                                <Upload className="w-4 h-4" /> Bulk Registration
+                            </h3>
+                            <p className="text-xs text-gray-600 mb-6 font-semibold leading-relaxed">
+                                Upload a CSV file with columns: <span className="text-black font-black bg-yellow-100 px-1">Name, RegisterNo, DOB</span>.
+                                <br />Format DOB as DD/MM/YYYY. All students in the file will be added to the selected class.
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase mb-1 ml-1 block">Target Class</label>
+                                    <select value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)} className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg font-bold mb-4">
+                                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex items-end">
+                                    <div className="relative w-full mb-4">
+                                        <input
+                                            type="file"
+                                            accept=".csv"
+                                            onChange={handleFileChange}
+                                            className="hidden"
+                                            ref={fileInputRef}
+                                        />
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="w-full h-[52px] border-2 border-dashed border-yellow-400 bg-yellow-50 rounded-lg flex items-center justify-center gap-2 text-xs font-black uppercase text-yellow-800 hover:bg-yellow-100 transition-all"
+                                        >
+                                            <FileDown className="w-4 h-4" />
+                                            {bulkFile ? bulkFile.name : 'Select CSV File'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <button
+                                        onClick={processBulkUpload}
+                                        disabled={!bulkFile || isProcessing}
+                                        className="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase tracking-[0.2em] shadow-lg disabled:opacity-50 disabled:grayscale transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                                Processing Students...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle2 className="w-5 h-5" />
+                                                Start Batch Import
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="w-full md:w-64 bg-black text-white p-5 rounded-xl border-4 border-yellow-500 shadow-xl">
+                            <h4 className="text-[10px] font-black tracking-widest uppercase mb-4 text-yellow-400">CSV Guide</h4>
+                            <div className="space-y-3">
+                                <div className="border-b border-gray-800 pb-2">
+                                    <p className="text-[9px] text-gray-400 uppercase font-black">Column 1</p>
+                                    <p className="text-xs font-bold">Student Full Name</p>
+                                </div>
+                                <div className="border-b border-gray-800 pb-2">
+                                    <p className="text-[9px] text-gray-400 uppercase font-black">Column 2</p>
+                                    <p className="text-xs font-bold">Register Number (USN)</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] text-gray-400 uppercase font-black">Column 3</p>
+                                    <p className="text-xs font-bold italic">DD/MM/YYYY</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Students List */}
             <div className="overflow-x-auto rounded-xl border-2 border-yellow-200 shadow-md bg-white">
                 <table className="min-w-full divide-y divide-gray-200 border-0">
-                    <thead className="bg-gradient-to-r from-yellow-100 to-yellow-50 border-b border-yellow-300">
+                    <thead className="bg-yellow-50">
                         <tr>
-                            <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">
-                                Student Name
-                            </th>
-                            <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">
-                                Register No
-                            </th>
-                            <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">
-                                Class
-                            </th>
-                            <th className="px-6 py-4 text-right text-xs font-black text-black uppercase tracking-widest w-24">
-                                Actions
-                            </th>
+                            <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">Name</th>
+                            <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">Reg No</th>
+                            <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">Class</th>
+                            <th className="px-6 py-4 text-right text-xs font-black text-black uppercase tracking-widest w-24">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
                         {students.length === 0 ? (
-                            <tr>
-                                <td colSpan={4} className="px-6 py-12 text-center text-gray-500 font-bold">
-                                    No students found matching your criteria.
-                                </td>
-                            </tr>
+                            <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500 font-bold">No students matched.</td></tr>
                         ) : (
                             students.map((s) => (
                                 <tr key={s.id} className="hover:bg-yellow-50/50 transition-colors group">
-                                    <td className="px-6 py-4 whitespace-nowrap font-bold text-black border-r border-gray-100">
-                                        {s.first_name}
-                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap font-bold text-black border-r border-gray-100">{s.first_name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm border-r border-gray-100">
                                         <span className="text-yellow-700 font-black tracking-wider uppercase">{s.usn}</span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm border-r border-gray-100">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-black">{s.class?.name || '---'}</span>
-                                            <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">{s.class?.type || 'Offline'}</span>
+                                            <span className="text-[10px] font-black uppercase text-gray-400">{s.class?.type || 'Offline'}</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button
-                                            onClick={() => deleteStudent(s.id)}
-                                            className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition border border-red-200 shadow-sm focus:opacity-100"
-                                            title="Delete Student"
-                                        >
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                        <button onClick={() => deleteStudent(s.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition border border-red-100">
                                             <Trash2 className="w-5 h-5" />
                                         </button>
                                     </td>
