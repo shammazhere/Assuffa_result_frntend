@@ -97,7 +97,7 @@ const StudentsManager: React.FC = () => {
 
         try {
             const response = await api.post('/admin/students', {
-                first_name: firstName.trim(),
+                first_name: firstName.trim().toUpperCase(),
                 usn: usn.trim().toUpperCase(),
                 dob: formattedDob,
                 class_id: selectedClassId
@@ -202,12 +202,13 @@ const StudentsManager: React.FC = () => {
                     const usn = row['USN'] || row['usn'] || row['Register Number'] || row['Reg No'];
                     const dob = row['DOB'] || row['dob'] || row['Date of Birth'];
                     const class_name = row['Class'] || row['class'] || row['ClassName'];
+                    const class_type = row['Type'] || row['type'] || row['Mode'] || row['ClassType'] || 'Offline';
 
                     if (!first_name || !usn || !dob || !class_name) return null;
 
                     const marks: any[] = [];
                     Object.keys(row).forEach(key => {
-                        const stdKeys = ['Name', 'name', 'Student Name', 'USN', 'usn', 'Register Number', 'Reg No', 'DOB', 'dob', 'Date of Birth', 'Class', 'class', 'ClassName'];
+                        const stdKeys = ['Name', 'name', 'Student Name', 'USN', 'usn', 'Register Number', 'Reg No', 'DOB', 'dob', 'Date of Birth', 'Class', 'class', 'ClassName', 'Type', 'type', 'Mode', 'ClassType'];
                         if (!stdKeys.includes(key) && row[key]) {
                             const val = parseInt(row[key]);
                             if (!isNaN(val)) {
@@ -219,7 +220,7 @@ const StudentsManager: React.FC = () => {
                         }
                     });
 
-                    return { first_name, usn, dob, class_name, marks };
+                    return { first_name, usn, dob, class_name, class_type, marks };
                 }).filter(s => s !== null);
 
                 if (formattedData.length === 0) {
@@ -489,8 +490,8 @@ const StudentsManager: React.FC = () => {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                {['Name', 'USN', 'DOB', 'Class'].map(header => (
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                {['Name', 'USN', 'DOB', 'Class', 'Type'].map(header => (
                                     <div key={header} className="bg-white/5 border border-white/10 px-4 py-3 rounded-lg flex items-center gap-3">
                                         <div className="w-2 h-2 rounded-full bg-yellow-500 shadow-[0_0_5px_yellow]" />
                                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{header}</span>
