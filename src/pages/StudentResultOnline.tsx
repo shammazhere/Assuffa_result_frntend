@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Download, LogOut } from 'lucide-react';
 import type { StudentItem, MarkItem } from '../types';
 import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const gradeColor = (grade: string | undefined) => {
     if (!grade) return { bg: '#F3F4F6', color: '#374151', border: '#D1D5DB' };
@@ -31,61 +32,40 @@ const StudentResultOnline: React.FC = () => {
     }, [typedStudent, navigate]);
 
     const handleDownload = async () => {
-        if (!printRef.current) return;
+        if (!printRef.current || isDownloading) return;
         setIsDownloading(true);
 
         try {
-            const targetWidth = 800;
             const original = printRef.current;
-
-            // Generate canvas with optimized settings
             const canvas = await html2canvas(original, {
-                scale: 2,
+                scale: 1.5,
                 useCORS: true,
                 allowTaint: false,
                 backgroundColor: '#ffffff',
-                windowWidth: targetWidth,
                 logging: false,
-                onclone: (clonedDoc) => {
-                    const el = clonedDoc.querySelector('[ref="printRef"]') as HTMLElement;
-                    if (el) {
-                        el.style.width = '800px';
-                        el.style.borderRadius = '0';
-                        el.style.boxShadow = 'none';
-                    }
-                }
+                windowWidth: 850
             });
 
-            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.jpg`;
+            const imgData = canvas.toDataURL('image/jpeg', 0.9);
+            const pdf = new jsPDF('p', 'mm', 'a4', true);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight, undefined, 'FAST');
 
-            // Convert to Blob for proper mobile sharing/download
-            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
-            if (!blob) throw new Error('Capture failed');
-
-            const file = new File([blob], fileName, { type: 'image/jpeg' });
-
-            // Check if Native Share is available (best for mobile saves/gallery)
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: 'Student Result',
-                    text: `Academic Result for ${typedStudent.first_name}`
-                });
-            } else {
-                // Fallback for browsers that don't support sharing (like some desktops)
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                setTimeout(() => URL.revokeObjectURL(url), 100);
-            }
+            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result_${Date.now()}.pdf`;
+            const blob = pdf.output('blob');
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 100);
 
         } catch (error) {
-            console.error('Capture failed:', error);
-            alert('Drawing failed. Please try again or take a screenshot of your screen.');
+            console.error('Download failed:', error);
+            alert('Download failed. Please try again.');
         } finally {
             setIsDownloading(false);
         }
