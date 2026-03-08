@@ -3,7 +3,7 @@ import api from '../../config/api';
 import { Plus, Trash2, Users, Upload, FileDown, CheckCircle2 } from 'lucide-react';
 import type { StudentItem, ClassItem } from '../../types';
 import StatusAlert from '../../components/admin/StatusAlert';
-import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 
 const StudentsManager: React.FC = () => {
     const [students, setStudents] = useState<StudentItem[]>([]);
@@ -131,117 +131,113 @@ const StudentsManager: React.FC = () => {
     };
 
     const processBulkUpload = async () => {
-        if (!bulkFile) { setError('Please select a CSV file first.'); return; }
+        if (!bulkFile) { setError('Please select a file first.'); return; }
         if (!selectedClassId) { setError('Please select a target class for this upload.'); return; }
 
         setIsProcessing(true);
         setError('');
 
-        Papa.parse(bulkFile, {
-            header: false,
-            skipEmptyLines: true,
-            complete: async (results) => {
-                const rows = results.data as string[][];
+        try {
+            const data = await bulkFile.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
-                const formattedData = rows.map(row => {
-                    const name = row[0]?.trim();
-                    const regNo = row[1]?.trim().toUpperCase();
-                    const rawDob = row[2]?.trim();
+            const formattedData = rows.map(row => {
+                const name = String(row[0] || '').trim();
+                const regNo = String(row[1] || '').trim().toUpperCase();
+                const rawDob = String(row[2] || '').trim();
 
-                    if (!name || !regNo || !rawDob) return null;
+                if (!name || !regNo || !rawDob || name === 'Name' || name === 'name') return null;
 
-                    let dobValue = rawDob;
-                    if (rawDob.includes('/')) {
-                        const [d, m, y] = rawDob.split('/');
-                        dobValue = `${y}-${m}-${d}`;
-                    }
-
-                    return {
-                        first_name: name,
-                        usn: regNo,
-                        dob: dobValue,
-                        class_id: selectedClassId
-                    };
-                }).filter(s => s !== null);
-
-                if (formattedData.length === 0) {
-                    setError('The CSV file appears to be empty or in the wrong format.');
-                    setIsProcessing(false);
-                    return;
+                let dobValue = rawDob;
+                if (rawDob.includes('/')) {
+                    const [d, m, y] = rawDob.split('/');
+                    dobValue = `${y}-${m}-${d}`;
                 }
 
-                try {
-                    const response = await api.post('/admin/students/bulk', formattedData);
-                    setSuccess(`Successfully imported ${response.data.count} students!`);
-                    setBulkFile(null);
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                    fetchInitialData();
-                } catch (err: any) {
-                    setError(err.response?.data?.error || 'Bulk upload failed. Check CSV formatting.');
-                } finally {
-                    setIsProcessing(false);
-                }
+                return {
+                    first_name: name,
+                    usn: regNo,
+                    dob: dobValue,
+                    class_id: selectedClassId
+                };
+            }).filter(s => s !== null);
+
+            if (formattedData.length === 0) {
+                setError('The file appears to be empty or in the wrong format.');
+                setIsProcessing(false);
+                return;
             }
-        });
+
+            const response = await api.post('/admin/students/bulk', formattedData);
+            setSuccess(`Successfully imported ${response.data.count} students!`);
+            setBulkFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            fetchInitialData();
+        } catch (err: any) {
+            setError('File processing failed. Ensure it is a valid Excel or CSV file.');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const processComprehensiveUpload = async () => {
-        if (!bulkFile) { setError('Please select a CSV file first.'); return; }
+        if (!bulkFile) { setError('Please select a file first.'); return; }
 
         setIsProcessing(true);
         setError('');
 
-        Papa.parse(bulkFile, {
-            header: true,
-            skipEmptyLines: true,
-            complete: async (results) => {
-                const rows = results.data as any[];
+        try {
+            const data = await bulkFile.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-                const formattedData = rows.map(row => {
-                    const first_name = row['Name'] || row['name'] || row['Student Name'];
-                    const usn = row['USN'] || row['usn'] || row['Register Number'] || row['Reg No'];
-                    const dob = row['DOB'] || row['dob'] || row['Date of Birth'];
-                    const class_name = row['Class'] || row['class'] || row['ClassName'];
-                    const class_type = row['Type'] || row['type'] || row['Mode'] || row['ClassType'] || 'Offline';
+            const formattedData = rows.map(row => {
+                const first_name = row['Name'] || row['name'] || row['Student Name'];
+                const usn = String(row['USN'] || row['usn'] || row['Register Number'] || row['Reg No'] || '');
+                const dob = String(row['DOB'] || row['dob'] || row['Date of Birth'] || '');
+                const class_name = row['Class'] || row['class'] || row['ClassName'];
+                const class_type = row['Type'] || row['type'] || row['Mode'] || row['ClassType'] || 'Offline';
 
-                    if (!first_name || !usn || !dob || !class_name) return null;
+                if (!first_name || !usn || !dob || !class_name) return null;
 
-                    const marks: any[] = [];
-                    Object.keys(row).forEach(key => {
-                        const stdKeys = ['Name', 'name', 'Student Name', 'USN', 'usn', 'Register Number', 'Reg No', 'DOB', 'dob', 'Date of Birth', 'Class', 'class', 'ClassName', 'Type', 'type', 'Mode', 'ClassType'];
-                        if (!stdKeys.includes(key) && row[key]) {
-                            const val = parseInt(row[key]);
-                            if (!isNaN(val)) {
-                                marks.push({
-                                    subject_name: key,
-                                    total: val
-                                });
-                            }
+                const marks: any[] = [];
+                Object.keys(row).forEach(key => {
+                    const stdKeys = ['Name', 'name', 'Student Name', 'USN', 'usn', 'Register Number', 'Reg No', 'DOB', 'dob', 'Date of Birth', 'Class', 'class', 'ClassName', 'Type', 'type', 'Mode', 'ClassType'];
+                    if (!stdKeys.includes(key) && row[key] !== undefined) {
+                        const val = parseInt(row[key]);
+                        if (!isNaN(val)) {
+                            marks.push({
+                                subject_name: key,
+                                total: val
+                            });
                         }
-                    });
+                    }
+                });
 
-                    return { first_name, usn, dob, class_name, class_type, marks };
-                }).filter(s => s !== null);
+                return { first_name, usn, dob, class_name, class_type, marks };
+            }).filter(s => s !== null);
 
-                if (formattedData.length === 0) {
-                    setError('Invalid headers in CSV. Ensure columns: Name, USN, DOB, Class are present.');
-                    setIsProcessing(false);
-                    return;
-                }
-
-                try {
-                    const response = await api.post('/admin/bulk-complete', formattedData);
-                    setSuccess(`Comprehensive Import finished! Processed ${response.data.count} student profiles with their respective marks.`);
-                    setBulkFile(null);
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                    fetchInitialData();
-                } catch (err: any) {
-                    setError(err.response?.data?.error || 'Full data upload failed. Ensure CSV columns are correct.');
-                } finally {
-                    setIsProcessing(false);
-                }
+            if (formattedData.length === 0) {
+                setError('Invalid headers in file. Ensure columns: Name, USN, DOB, Class are present.');
+                setIsProcessing(false);
+                return;
             }
-        });
+
+            const response = await api.post('/admin/bulk-complete', formattedData);
+            setSuccess(`Comprehensive Import finished! Processed ${response.data.count} profiles with marks.`);
+            setBulkFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            fetchInitialData();
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Full data upload failed. Ensure correct headers.');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const deleteStudent = async (id: string) => {
@@ -315,7 +311,7 @@ const StudentsManager: React.FC = () => {
                     onClick={() => setUploadMode('bulk')}
                     className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tighter transition-all shadow-sm ${uploadMode === 'bulk' ? 'bg-yellow-500 text-black' : 'bg-gray-100 text-gray-500'}`}
                 >
-                    Quick Student Upload
+                    Quick Student Import (XLS/CSV)
                 </button>
                 <button
                     onClick={() => setUploadMode('comprehensive')}
@@ -370,7 +366,7 @@ const StudentsManager: React.FC = () => {
                                 <Upload className="w-4 h-4" /> Bulk Registration
                             </h3>
                             <p className="text-xs text-gray-600 mb-6 font-semibold leading-relaxed">
-                                Upload a CSV file with columns: <span className="text-black font-black bg-yellow-100 px-1">Name, RegisterNo, DOB</span>.
+                                Upload an Excel (.xlsx/.xls) or CSV file with columns: <span className="text-black font-black bg-yellow-100 px-1">Name, RegisterNo, DOB</span>.
                                 <br />Format DOB as DD/MM/YYYY. All students in the file will be added to the selected class.
                             </p>
 
@@ -385,7 +381,7 @@ const StudentsManager: React.FC = () => {
                                     <div className="relative w-full mb-4">
                                         <input
                                             type="file"
-                                            accept=".csv"
+                                            accept=".csv, .xlsx, .xls"
                                             onChange={handleFileChange}
                                             className="hidden"
                                             ref={fileInputRef}
@@ -395,7 +391,7 @@ const StudentsManager: React.FC = () => {
                                             className="w-full h-[52px] border-2 border-dashed border-yellow-400 bg-yellow-50 rounded-lg flex items-center justify-center gap-2 text-xs font-black uppercase text-yellow-800 hover:bg-yellow-100 transition-all"
                                         >
                                             <FileDown className="w-4 h-4" />
-                                            {bulkFile ? bulkFile.name : 'Select CSV File'}
+                                            {bulkFile ? bulkFile.name : 'Select Excel/CSV File'}
                                         </button>
                                     </div>
                                 </div>
@@ -421,7 +417,7 @@ const StudentsManager: React.FC = () => {
                             </div>
                         </div>
                         <div className="w-full md:w-64 bg-black text-white p-5 rounded-xl border-4 border-yellow-500 shadow-xl">
-                            <h4 className="text-[10px] font-black tracking-widest uppercase mb-4 text-yellow-400">CSV Guide</h4>
+                            <h4 className="text-[10px] font-black tracking-widest uppercase mb-4 text-yellow-400">Excel / CSV Guide</h4>
                             <div className="space-y-3">
                                 <div className="border-b border-gray-800 pb-2">
                                     <p className="text-[9px] text-gray-400 uppercase font-black">Column 1</p>
@@ -466,7 +462,7 @@ const StudentsManager: React.FC = () => {
                                 <div className="flex-1 relative">
                                     <input
                                         type="file"
-                                        accept=".csv"
+                                        accept=".csv, .xlsx, .xls"
                                         onChange={handleFileChange}
                                         className="hidden"
                                         ref={fileInputRef}
@@ -478,7 +474,7 @@ const StudentsManager: React.FC = () => {
                                         <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center group-hover:bg-yellow-500 transition-colors">
                                             <FileDown className="w-4 h-4 group-hover:text-black" />
                                         </div>
-                                        <span className="truncate">{bulkFile ? bulkFile.name : 'Choose Comprehensive CSV...'}</span>
+                                        <span className="truncate">{bulkFile ? bulkFile.name : 'Choose Comprehensive Excel/CSV...'}</span>
                                     </button>
                                 </div>
                                 <button
