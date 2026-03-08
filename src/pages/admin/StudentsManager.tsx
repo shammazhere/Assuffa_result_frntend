@@ -212,7 +212,7 @@ const StudentsManager: React.FC = () => {
             // because of the "Name" check.
             const dataRows = rows.slice(0); // Start from beginning, we'll skip the header row during mapping
 
-            const formattedData = dataRows.map((row, index) => {
+            const formattedData = dataRows.map((row) => {
                 // Positional Mapping (1st: Name, 2nd: USN, 3rd: DOB, 4th: Class, 5th: Type)
                 const first_name = String(row[0] || '').trim();
                 const usn = String(row[1] || '').trim().toUpperCase();
