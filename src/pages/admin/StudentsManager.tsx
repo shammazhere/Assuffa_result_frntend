@@ -191,12 +191,13 @@ const StudentsManager: React.FC = () => {
 
         try {
             const data = await bulkFile.arrayBuffer();
-            const workbook = XLSX.read(data);
+            const workbook = XLSX.read(data, { cellDates: true });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
 
-            // Get raw rows (array of arrays) to use position-based mapping
-            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+            // Get raw rows (array of arrays)
+            // Use raw: false and dateNF to ensure we get strings that look like dates
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, dateNF: 'dd/mm/yyyy' }) as any[][];
 
             if (rows.length < 2) {
                 setError('The file appears to be empty or missing data rows.');
@@ -204,36 +205,40 @@ const StudentsManager: React.FC = () => {
                 return;
             }
 
-            // Detect headers from the first row to use for subject names
+            // Headers are vital for SUBJECT NAMES (from 6th column onwards)
             const headers = rows[0].map(h => String(h || '').trim());
 
-            // Process data rows (start from index 1 if index 0 is headers)
-            // If the first row is NOT headers but actual data, we will still handle it
-            // because of the "Name" check.
-            const dataRows = rows.slice(0); // Start from beginning, we'll skip the header row during mapping
-
-            const formattedData = dataRows.map((row) => {
-                // Positional Mapping (1st: Name, 2nd: USN, 3rd: DOB, 4th: Class, 5th: Type)
+            const formattedData = rows.map((row, index) => {
+                // Positional Mapping (Absolute index in Excel)
+                // 1st: Name (0), 2nd: USN (1), 3rd: DOB (2), 4th: Class (3), 5th: Type (4)
                 const first_name = String(row[0] || '').trim();
                 const usn = String(row[1] || '').trim().toUpperCase();
                 const dob = String(row[2] || '').trim();
                 const class_name = String(row[3] || '').trim();
                 const class_type = String(row[4] || 'Offline').trim();
 
-                // Skip header row if detected
+                // Validation & Skipper
                 if (!first_name || first_name.toLowerCase() === 'name' || first_name.toLowerCase() === 'student name') return null;
-                if (!usn || !dob || !class_name) return null;
+
+                // If the mandatory fields (USN, DOB, CLASS) are missing for a record
+                if (!usn || !dob || !class_name) {
+                    console.warn(`Skipping row ${index + 1} due to missing data:`, { usn, dob, class_name });
+                    return null;
+                }
 
                 const marks: any[] = [];
-                // Subjects start from the 6th column (index 5)
+                // Subjects dynamically start from Column 6 (index 5)
                 for (let i = 5; i < row.length; i++) {
                     const subjectName = headers[i] || `Subject ${i - 4}`;
-                    const val = parseInt(row[i]);
-                    if (!isNaN(val)) {
-                        marks.push({
-                            subject_name: subjectName,
-                            total: val
-                        });
+                    const rawVal = row[i];
+                    if (rawVal !== undefined && rawVal !== '') {
+                        const val = parseInt(String(rawVal));
+                        if (!isNaN(val)) {
+                            marks.push({
+                                subject_name: subjectName,
+                                total: val
+                            });
+                        }
                     }
                 }
 
@@ -241,18 +246,20 @@ const StudentsManager: React.FC = () => {
             }).filter(s => s !== null);
 
             if (formattedData.length === 0) {
-                setError('Could not parse any valid student records. Ensure Name, USN, DOB, and Class are in the first 4 columns.');
+                setError('Master Sync found no valid student data. Check column order: 1:Name, 2:USN, 3:DOB, 4:Class.');
                 setIsProcessing(false);
                 return;
             }
 
             const response = await api.post('/admin/bulk-complete', formattedData);
-            setSuccess(`Sync Complete! Processed ${response.data.count} profiles with their marks successfully.`);
+            setSuccess(`Success! Synchronized ${response.data.count} student profiles and their marks.`);
             setBulkFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
             fetchInitialData();
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Intelligence Sync failed. Please check your Excel layout.');
+            console.error('Master Upload Fault:', err);
+            const msg = err.response?.data?.error || err.message || 'Unknown processing fault.';
+            setError(`Intelligence Sync Failed: ${msg}`);
         } finally {
             setIsProcessing(false);
         }
