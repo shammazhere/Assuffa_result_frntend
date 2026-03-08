@@ -55,8 +55,9 @@ const StudentResult: React.FC = () => {
             await new Promise(resolve => setTimeout(resolve, 300));
 
             const canvas = await html2canvas(clone, {
-                scale: 2,
+                scale: 1.5,
                 useCORS: true,
+                allowTaint: false,
                 logging: false,
                 backgroundColor: '#ffffff',
                 windowWidth: 850
@@ -76,12 +77,22 @@ const StudentResult: React.FC = () => {
 
             pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
 
-            // For mobile compatibility, we use a more direct save approach
             const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.pdf`;
-            pdf.save(fileName);
+
+            // Blob-based download is MUCH more reliable on mobile and in incognito
+            const blob = pdf.output('blob');
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+
         } catch (error) {
             console.error('Download failed:', error);
-            alert('PDF generation failed. Please ensure you are not using "Incognito/Private" mode or try a different browser.');
+            alert('PDF generation failed. This can happen in some mobile browsers or incognito modes. If it persists, please use a standard browser tab.');
         } finally {
             setIsDownloading(false);
         }
@@ -319,9 +330,8 @@ const StudentResult: React.FC = () => {
                                                 <div style={{ fontSize: '0.9rem' }}>{totalMarks} /</div>
                                                 <div style={{ fontSize: '0.9rem', color: '#6B7280' }}>{maxMarks}</div>
                                             </td>
-                                            <td style={{ padding: '0.75rem 0.25rem', textAlign: 'center', fontWeight: 900, color: '#B45309', fontSize: '0.85rem' }}>
-                                                <div style={{ fontSize: '0.75rem', marginBottom: '1px' }}>{percentage}%</div>
-                                                <div style={{ fontSize: '0.6rem', color: '#B45309', opacity: 0.8, letterSpacing: '0.05em' }}>GRADE</div>
+                                            <td style={{ padding: '0.75rem 0.25rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '0.85rem' }}>
+                                                {percentage}%
                                             </td>
                                         </tr>
                                     </tfoot>

@@ -66,27 +66,22 @@ const StudentResultOnline: React.FC = () => {
 
             document.body.appendChild(clone);
 
-            // Wait for any rendering/layout to stabilize
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Wait for images and styles
+            await new Promise(resolve => setTimeout(resolve, 800));
 
             const canvas = await html2canvas(clone, {
-                scale: 2, // 2x for retina-like sharpness
+                scale: 1.5, // Reduced for better memory performance on mobile
                 useCORS: true,
-                allowTaint: true,
+                allowTaint: false, // Taint must be false for toDataURL to work
                 backgroundColor: '#ffffff',
                 width: targetWidth,
                 windowWidth: targetWidth,
-                logging: false,
-                onclone: (clonedDoc) => {
-                    // Final stylistic tweaks inside the library's own clone if needed
-                    const el = clonedDoc.body.lastChild as HTMLElement;
-                    if (el) el.style.boxShadow = 'none';
-                }
+                logging: false
             });
 
             document.body.removeChild(clone);
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const imgData = canvas.toDataURL('image/jpeg', 0.9);
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
@@ -95,23 +90,25 @@ const StudentResultOnline: React.FC = () => {
             });
 
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-            // If result is very long, it will be scaled to fit one A4 page 
-            // Better to fit on one page for a single-sheet result
             pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
-
-            // Generate filename
             const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.pdf`;
 
-            // For mobile, .save() can sometimes be silent or blocked. 
-            // We'll also try to open in a new tab if it's potentially failing
-            pdf.save(fileName);
+            // Blob-based download is MUCH more reliable on mobile and in incognito
+            const blob = pdf.output('blob');
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 100);
 
         } catch (error) {
             console.error('Download failed:', error);
-            alert('PDF generation failed. Please ensure you are not using "Incognito/Private" mode or try a different browser.');
+            alert('PDF generation failed. This can happen in some mobile browsers or incognito modes. If it persists, please use a standard browser tab.');
         } finally {
             setIsDownloading(false);
         }
@@ -349,9 +346,8 @@ const StudentResultOnline: React.FC = () => {
                                                 <div style={{ fontSize: '0.9rem' }}>{totalMarks} /</div>
                                                 <div style={{ fontSize: '0.9rem', color: '#6B7280' }}>{maxMarks}</div>
                                             </td>
-                                            <td style={{ padding: '0.75rem 0.25rem', textAlign: 'center', fontWeight: 900, color: '#B45309', fontSize: '0.85rem' }}>
-                                                <div style={{ fontSize: '0.75rem', marginBottom: '1px' }}>{percentage}%</div>
-                                                <div style={{ fontSize: '0.6rem', color: '#B45309', opacity: 0.8, letterSpacing: '0.05em' }}>GRADE</div>
+                                            <td style={{ padding: '0.75rem 0.25rem', textAlign: 'center', fontWeight: 900, color: '#000', fontSize: '0.85rem' }}>
+                                                {percentage}%
                                             </td>
                                         </tr>
                                     </tfoot>
