@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Download, LogOut } from 'lucide-react';
 import type { StudentItem, MarkItem } from '../types';
 import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 
 const gradeColor = (grade: string | undefined) => {
     if (!grade) return { bg: '#F3F4F6', color: '#374151', border: '#D1D5DB' };
@@ -36,63 +35,51 @@ const StudentResult: React.FC = () => {
         setIsDownloading(true);
 
         try {
-            // Create a temporary container for capturing a high-quality version
+            const targetWidth = 800;
             const original = printRef.current;
-            const clone = original.cloneNode(true) as HTMLDivElement;
 
-            Object.assign(clone.style, {
-                width: '850px',
-                position: 'fixed',
-                top: '-9999px',
-                left: '-9999px',
-                borderRadius: '0',
-                boxShadow: 'none',
-                overflow: 'visible'
-            });
-
-            document.body.appendChild(clone);
-
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            const canvas = await html2canvas(clone, {
-                scale: 1.5,
+            const canvas = await html2canvas(original, {
+                scale: 2,
                 useCORS: true,
                 allowTaint: false,
-                logging: false,
                 backgroundColor: '#ffffff',
-                windowWidth: 850
+                windowWidth: targetWidth,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    const el = clonedDoc.querySelector('[ref="printRef"]') as HTMLElement;
+                    if (el) {
+                        el.style.width = '800px';
+                        el.style.borderRadius = '0';
+                        el.style.boxShadow = 'none';
+                    }
+                }
             });
 
-            document.body.removeChild(clone);
+            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.jpg`;
+            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+            if (!blob) throw new Error('Capture failed');
 
-            const imgData = canvas.toDataURL('image/png', 1.0);
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
+            const file = new File([blob], fileName, { type: 'image/jpeg' });
 
-            const imgWidth = 210;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
-
-            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.pdf`;
-
-            // Blob-based download is MUCH more reliable on mobile and in incognito
-            const blob = pdf.output('blob');
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            setTimeout(() => URL.revokeObjectURL(url), 100);
-
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Student Result',
+                    text: `Result for ${typedStudent.first_name}`
+                });
+            } else {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            }
         } catch (error) {
-            console.error('Download failed:', error);
-            alert('PDF generation failed. This can happen in some mobile browsers or incognito modes. If it persists, please use a standard browser tab.');
+            console.error('Capture failed:', error);
+            alert('Generation failed. Please try again or take a screenshot.');
         } finally {
             setIsDownloading(false);
         }

@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Download, LogOut } from 'lucide-react';
 import type { StudentItem, MarkItem } from '../types';
 import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 
 const gradeColor = (grade: string | undefined) => {
     if (!grade) return { bg: '#F3F4F6', color: '#374151', border: '#D1D5DB' };
@@ -36,79 +35,57 @@ const StudentResultOnline: React.FC = () => {
         setIsDownloading(true);
 
         try {
-            // A4 dimensions at 96 DPI: 210mm x 297mm -> ~794px x 1123px
             const targetWidth = 800;
-
-            // Create a high-quality clone specifically for capturing
             const original = printRef.current;
-            const clone = original.cloneNode(true) as HTMLDivElement;
 
-            // Apply capture-specific styles to the clone
-            Object.assign(clone.style, {
-                width: `${targetWidth}px`,
-                position: 'absolute',
-                top: '0',
-                left: '0',
-                zIndex: '-1',
-                opacity: '1',
-                borderRadius: '0',
-                boxShadow: 'none',
-                margin: '0',
-                padding: '40px', // Consistent padding for PDF
-                transform: 'none',
+            // Generate canvas with optimized settings
+            const canvas = await html2canvas(original, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: false,
+                backgroundColor: '#ffffff',
+                windowWidth: targetWidth,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    const el = clonedDoc.querySelector('[ref="printRef"]') as HTMLElement;
+                    if (el) {
+                        el.style.width = '800px';
+                        el.style.borderRadius = '0';
+                        el.style.boxShadow = 'none';
+                    }
+                }
             });
 
-            // Ensure images in clone are loaded or properly handled
-            const images = clone.getElementsByTagName('img');
-            for (let i = 0; i < images.length; i++) {
-                images[i].crossOrigin = "anonymous";
+            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.jpg`;
+
+            // Convert to Blob for proper mobile sharing/download
+            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+            if (!blob) throw new Error('Capture failed');
+
+            const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+            // Check if Native Share is available (best for mobile saves/gallery)
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Student Result',
+                    text: `Academic Result for ${typedStudent.first_name}`
+                });
+            } else {
+                // Fallback for browsers that don't support sharing (like some desktops)
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 100);
             }
 
-            document.body.appendChild(clone);
-
-            // Wait for images and styles
-            await new Promise(resolve => setTimeout(resolve, 800));
-
-            const canvas = await html2canvas(clone, {
-                scale: 1.5, // Reduced for better memory performance on mobile
-                useCORS: true,
-                allowTaint: false, // Taint must be false for toDataURL to work
-                backgroundColor: '#ffffff',
-                width: targetWidth,
-                windowWidth: targetWidth,
-                logging: false
-            });
-
-            document.body.removeChild(clone);
-
-            const imgData = canvas.toDataURL('image/jpeg', 0.9);
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4',
-                compress: true
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
-            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.pdf`;
-
-            // Blob-based download is MUCH more reliable on mobile and in incognito
-            const blob = pdf.output('blob');
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            setTimeout(() => URL.revokeObjectURL(url), 100);
-
         } catch (error) {
-            console.error('Download failed:', error);
-            alert('PDF generation failed. This can happen in some mobile browsers or incognito modes. If it persists, please use a standard browser tab.');
+            console.error('Capture failed:', error);
+            alert('Drawing failed. Please try again or take a screenshot of your screen.');
         } finally {
             setIsDownloading(false);
         }
