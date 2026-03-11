@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../config/api';
-import { Trash2, Users } from 'lucide-react';
+import { Trash2, Users, Plus } from 'lucide-react';
 import type { StudentItem, ClassItem } from '../../types';
 import StatusAlert from '../../components/admin/StatusAlert';
 
 const StudentsManager: React.FC = () => {
     const [students, setStudents] = useState<StudentItem[]>([]);
     const [classes, setClasses] = useState<ClassItem[]>([]);
+
+    // Add student form state
+    const [newName, setNewName] = useState('');
+    const [newUsn, setNewUsn] = useState('');
+    const [newDob, setNewDob] = useState('');
+    const [newClassId, setNewClassId] = useState('');
+    const [isAdding, setIsAdding] = useState(false);
 
     // Filter & Search State
     const [filterClassId, setFilterClassId] = useState('');
@@ -59,6 +66,42 @@ const StudentsManager: React.FC = () => {
         const val = e.target.value;
         setSearchUsn(val);
         fetchFilteredStudents(filterClassId, val);
+    };
+
+    // Normalize DOB: pad single-digit day/month to 2 digits e.g. 1/1/2000 => 01/01/2000
+    const normalizeDob = (raw: string): string => {
+        const parts = raw.trim().split('/');
+        if (parts.length !== 3) return raw; // Not a slash-separated date, return as-is
+        const [d, m, y] = parts;
+        return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+    };
+
+    const addStudent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newName || !newUsn || !newDob || !newClassId) {
+            setError('Please fill in all fields.');
+            return;
+        }
+        setIsAdding(true);
+        try {
+            const normalizedDob = normalizeDob(newDob);
+            await api.post('/admin/students', {
+                first_name: newName.trim().toUpperCase(),
+                usn: newUsn.trim().toUpperCase(),
+                dob: normalizedDob,
+                class_id: newClassId,
+            });
+            setSuccess(`Student "${newName.toUpperCase()}" added successfully.`);
+            setNewName('');
+            setNewUsn('');
+            setNewDob('');
+            setNewClassId('');
+            fetchInitialData();
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Failed to add student.');
+        } finally {
+            setIsAdding(false);
+        }
     };
 
     const deleteStudent = async (id: string) => {
@@ -120,8 +163,71 @@ const StudentsManager: React.FC = () => {
             <StatusAlert type="error" message={error} onClose={() => setError('')} />
             <StatusAlert type="success" message={success} onClose={() => setSuccess('')} />
 
-            <StatusAlert type="error" message={error} onClose={() => setError('')} />
-            <StatusAlert type="success" message={success} onClose={() => setSuccess('')} />
+            {/* Add Student Form */}
+            <div className="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border border-yellow-200 shadow-sm mb-8">
+                <h3 className="font-black text-black mb-4 text-sm uppercase tracking-widest border-b border-yellow-200 pb-2 flex items-center gap-2">
+                    <Plus className="w-4 h-4" /> Add New Student
+                </h3>
+                <form onSubmit={addStudent} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div>
+                        <label className="block text-xs font-black text-black uppercase tracking-widest mb-1">Full Name</label>
+                        <input
+                            type="text"
+                            value={newName}
+                            onChange={e => setNewName(e.target.value)}
+                            placeholder="e.g. John Doe"
+                            className="w-full px-3 py-2.5 bg-white border-2 border-yellow-200 rounded-lg text-black font-bold text-sm focus:outline-none focus:border-yellow-500"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-black text-black uppercase tracking-widest mb-1">Reg No / USN</label>
+                        <input
+                            type="text"
+                            value={newUsn}
+                            onChange={e => setNewUsn(e.target.value)}
+                            placeholder="e.g. DSOG201"
+                            className="w-full px-3 py-2.5 bg-white border-2 border-yellow-200 rounded-lg text-black font-bold text-sm focus:outline-none focus:border-yellow-500"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-black text-black uppercase tracking-widest mb-1">DOB (DD/MM/YYYY)</label>
+                        <input
+                            type="text"
+                            value={newDob}
+                            onChange={e => setNewDob(e.target.value)}
+                            placeholder="e.g. 01/01/2006"
+                            className="w-full px-3 py-2.5 bg-white border-2 border-yellow-200 rounded-lg text-black font-bold text-sm focus:outline-none focus:border-yellow-500"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-black text-black uppercase tracking-widest mb-1">Class</label>
+                        <select
+                            value={newClassId}
+                            onChange={e => setNewClassId(e.target.value)}
+                            className="w-full px-3 py-2.5 bg-white border-2 border-yellow-200 rounded-lg text-black font-bold text-sm focus:outline-none focus:border-yellow-500"
+                            required
+                        >
+                            <option value="">Select Class</option>
+                            {classes.map(c => (
+                                <option key={c.id} value={c.id}>{c.name.toUpperCase()} - {c.type.toUpperCase()}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-end">
+                        <button
+                            type="submit"
+                            disabled={isAdding}
+                            className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2.5 rounded-lg font-extrabold text-sm shadow-md border border-yellow-600 transition-all hover:-translate-y-0.5 disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            {isAdding ? 'Adding...' : 'Add Student'}
+                        </button>
+                    </div>
+                </form>
+            </div>
 
             {/* Students List */}
             <div className="overflow-x-auto rounded-xl border-2 border-yellow-200 shadow-md bg-white">
