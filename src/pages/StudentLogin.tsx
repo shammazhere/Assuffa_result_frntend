@@ -19,9 +19,7 @@ const StudentLogin: React.FC = () => {
                 setError('Please enter Date of Birth in DD/MM/YYYY format');
                 return;
             }
-            const parts = dob.split('/');
-            const formattedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
-            const studentData = await studentLogin(usn, formattedDob);
+            const studentData = await studentLogin(usn, dob);
             if (studentData.classType === 'Online') {
                 navigate('/online-result');
             } else {
