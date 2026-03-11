@@ -6,17 +6,25 @@ import type { StudentItem, MarkItem } from '../types';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-const gradeColor = (grade: string | undefined) => {
-    if (!grade) return { bg: '#F3F4F6', color: '#374151', border: '#D1D5DB' };
-    const g = grade.toUpperCase();
-    if (g === 'A+') return { bg: '#F0FDF4', color: '#166534', border: '#BBF7D0' };
-    if (g === 'A') return { bg: '#F0FDF4', color: '#166534', border: '#BBF7D0' };
-    if (g === 'B+') return { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' };
-    if (g === 'B') return { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' };
-    if (g === 'C+') return { bg: '#FEFCE8', color: '#854D0E', border: '#FDE68A' };
-    if (g === 'C') return { bg: '#FEFCE8', color: '#854D0E', border: '#FDE68A' };
-    if (g === 'D') return { bg: '#FFF7ED', color: '#C2410C', border: '#FED7AA' };
-    return { bg: '#FEF2F2', color: '#991B1B', border: '#FECACA' };
+const gradeColor = (grade: string | undefined, total: number) => {
+    // FRONTEND FALLBACK: Recalculate grade based on 50-mark base if backend is stale
+    let g = grade || 'F';
+    if (total > 45) g = "A+";
+    else if (total > 40) g = "A";
+    else if (total > 35) g = "B+";
+    else if (total > 30) g = "B";
+    else if (total > 22) g = "C+";
+    else g = "F";
+
+    g = g.toUpperCase();
+    if (g === 'A+') return { text: 'A+', bg: '#F0FDF4', color: '#166534', border: '#BBF7D0' };
+    if (g === 'A') return { text: 'A', bg: '#F0FDF4', color: '#166534', border: '#BBF7D0' };
+    if (g === 'B+') return { text: 'B+', bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' };
+    if (g === 'B') return { text: 'B', bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' };
+    if (g === 'C+') return { text: 'C+', bg: '#FEFCE8', color: '#854D0E', border: '#FDE68A' };
+    if (g === 'C') return { text: 'C', bg: '#FEFCE8', color: '#854D0E', border: '#FDE68A' };
+    if (g === 'D') return { text: 'D', bg: '#FFF7ED', color: '#C2410C', border: '#FED7AA' };
+    return { text: 'F', bg: '#FEF2F2', color: '#991B1B', border: '#FECACA' };
 };
 
 const StudentResultOnline: React.FC = () => {
@@ -48,7 +56,18 @@ const StudentResultOnline: React.FC = () => {
                 useCORS: true,
                 backgroundColor: '#ffffff',
                 logging: false,
-                allowTaint: true
+                allowTaint: true,
+                windowWidth: 1200, // Force desktop width for mobile capture
+                width: 900, // Target element width
+                onclone: (clonedDoc) => {
+                    const clonedEl = clonedDoc.querySelector('[data-print-container="true"]') as HTMLElement;
+                    if (clonedEl) {
+                        clonedEl.style.width = '900px';
+                        clonedEl.style.maxWidth = 'none';
+                        clonedEl.style.margin = '0';
+                        clonedEl.style.padding = '20px';
+                    }
+                }
             });
 
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -167,6 +186,7 @@ const StudentResultOnline: React.FC = () => {
                 {/* Main Card */}
                 <div
                     ref={printRef}
+                    data-print-container="true"
                     style={{
                         background: '#ffffff',
                         borderRadius: '1.5rem',
@@ -288,7 +308,7 @@ const StudentResultOnline: React.FC = () => {
                                 <tbody>
                                     {typedStudent.marks && typedStudent.marks.length > 0 ? (
                                         typedStudent.marks.map((mark: MarkItem, idx: number) => {
-                                            const gc = gradeColor(mark.grade);
+                                            const gc = gradeColor(mark.grade, mark.total);
                                             return (
                                                 <tr key={idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFFBEB', borderBottom: '1px solid #FDE68A' }}>
                                                     <td style={{ padding: '0.75rem 0.5rem', fontWeight: 800, color: '#1F2937', fontSize: '0.95rem', lineHeight: '1.2', overflowWrap: 'anywhere', wordBreak: 'break-word', textTransform: 'uppercase' }}>
@@ -305,7 +325,7 @@ const StudentResultOnline: React.FC = () => {
                                                             background: gc.bg, color: gc.color,
                                                             border: `1px solid ${gc.border}`,
                                                             fontWeight: 900, fontSize: '0.75rem',
-                                                        }}>{mark.grade}</span>
+                                                        }}>{gc.text}</span>
                                                     </td>
                                                 </tr>
                                             );
