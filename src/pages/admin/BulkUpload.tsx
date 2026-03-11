@@ -39,11 +39,41 @@ const BulkUpload: React.FC = () => {
             }
 
             const headers = rows[0].map(h => String(h || '').trim());
+
+            // Normalize DOB to canonical DD/MM/YYYY regardless of how XLSX outputs it
+            // Handles: '1/1/2006' → '01/01/2006', JS Date objects, '2006-01-01' → '01/01/2006'
+            const normalizeDob = (raw: any): string => {
+                if (raw instanceof Date) {
+                    const d = String(raw.getDate()).padStart(2, '0');
+                    const m = String(raw.getMonth() + 1).padStart(2, '0');
+                    const y = raw.getFullYear();
+                    return `${d}/${m}/${y}`;
+                }
+                const s = String(raw || '').trim();
+                // Slash-separated: D/M/YYYY or DD/MM/YYYY
+                if (s.includes('/')) {
+                    const parts = s.split('/');
+                    if (parts.length === 3 && parts[2].length === 4) {
+                        const [d, m, y] = parts;
+                        return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+                    }
+                }
+                // Dash-separated YYYY-MM-DD (from cellDates JS Date serialization)
+                if (s.includes('-')) {
+                    const parts = s.split('-');
+                    if (parts.length === 3 && parts[0].length === 4) {
+                        const [y, m, d] = parts;
+                        return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+                    }
+                }
+                return s;
+            };
             
             const formattedData = rows.map((row, index) => {
                 const first_name = String(row[0] || '').trim().toUpperCase();
                 const usn = String(row[1] || '').trim().toUpperCase();
-                const dob = String(row[2] || '').trim();
+                const rawDob = row[2];
+                const dob = normalizeDob(rawDob); // Always DD/MM/YYYY padded
                 const class_name = String(row[3] || '').trim().toUpperCase();
                 const class_type = String(row[4] || 'Offline').trim();
 
