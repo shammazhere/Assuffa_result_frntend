@@ -38,69 +38,42 @@ const StudentResult: React.FC = () => {
         try {
             const el = printRef.current;
 
-            // Critical for external images to work in canvas capture
-            const images = el.getElementsByTagName('img');
-            for (let i = 0; i < images.length; i++) {
-                images[i].crossOrigin = "anonymous";
-            }
-
-            // High performance capture settings
             const canvas = await html2canvas(el, {
-                scale: 1.5,
-                useCORS: true,
-                allowTaint: false,
+                scale: 2, 
+                useCORS: true, 
                 backgroundColor: '#ffffff',
                 logging: false,
-                windowWidth: 850,
-                removeContainer: true,
-                imageTimeout: 5000,
-                onclone: (clonedDoc) => {
-                    // Ensure the cloned element is visible for capture
-                    const clonedEl = clonedDoc.querySelector('[ref="printRef"]') as HTMLElement;
-                    if (clonedEl) clonedEl.style.display = 'block';
-                }
             });
 
-            const imgData = canvas.toDataURL('image/png', 1.0);
-
-            const pdf = new jsPDF('p', 'mm', 'a4', true);
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const imgProps = pdf.getImageProperties(imgData);
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-
-            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_Result.pdf`;
-            const blob = pdf.output('blob');
-            const url = URL.createObjectURL(blob);
-
-            const link = document.createElement('a');
-            link.style.display = 'none';
-            link.href = url;
-            link.download = fileName;
-
-            document.body.appendChild(link);
-            link.click();
-
-            setTimeout(() => {
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            }, 300);
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            
+            const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_RESULT.pdf`.toUpperCase();
+            pdf.save(fileName); 
 
         } catch (error) {
-            console.error('Final Download Error:', error);
-            // If the above fails, one last heroic attempt using a direct image download
+            console.error('PDF Generation Fault:', error);
             try {
                 const el = printRef.current;
-                if (!el) throw new Error("No element");
+                if (!el) throw new Error("Element lost");
                 const canvas = await html2canvas(el, { scale: 1.5, useCORS: true });
-                const url = canvas.toDataURL('image/png');
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                
                 const link = document.createElement('a');
-                link.href = url;
-                link.download = `${typedStudent.first_name}_Result.png`;
+                link.href = dataUrl;
+                link.download = `${typedStudent.first_name}_RESULT.jpg`.toUpperCase();
+                document.body.appendChild(link);
                 link.click();
+                document.body.removeChild(link);
             } catch (innerError) {
-                alert('CRITICAL: Download block detected. Please take a screenshot of this page to save your result.');
+                console.error('Image Download Fault:', innerError);
+                alert('Direct download was blocked by your browser settings. Opening the print dialog—please select "Save as PDF".');
+                window.print();
             }
         } finally {
             setIsDownloading(false);
@@ -250,7 +223,7 @@ const StudentResult: React.FC = () => {
                             {[
                                 { label: 'Student Name', value: typedStudent.first_name.toUpperCase() },
                                 { label: 'USN / Roll No.', value: typedStudent.usn.toUpperCase() },
-                                { label: 'Class / Mode', value: `${(typedStudent.class?.name || 'N/A').toUpperCase()} (${(typedStudent.class?.type || 'Offline').toUpperCase()})` },
+                                { label: 'Course Enrolled', value: `${(typedStudent.class?.name || 'N/A').toUpperCase()} - ${(typedStudent.class?.type || 'Offline').toUpperCase()}` },
                             ].map(item => (
                                 <div key={item.label} style={{
                                     background: '#fff', padding: '1rem',

@@ -8,6 +8,7 @@ import {
     BarChart,
     LogOut,
     Menu,
+    Upload,
     X
 } from 'lucide-react';
 import { useState } from 'react';
@@ -22,6 +23,7 @@ const AdminDashboard: React.FC = () => {
         { name: 'Subjects', href: '/admin/subjects', icon: GraduationCap },
         { name: 'Students', href: '/admin/students', icon: Users },
         { name: 'Marks', href: '/admin/marks', icon: BarChart },
+        { name: 'Master Sync', href: '/admin/upload', icon: Upload },
     ];
 
     return (

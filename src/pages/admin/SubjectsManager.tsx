@@ -106,7 +106,7 @@ const SubjectsManager: React.FC = () => {
                     >
                         <option value="">All Classes</option>
                         {classes.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
+                            <option key={c.id} value={c.id}>{c.name.toUpperCase()} - {c.type.toUpperCase()}</option>
                         ))}
                     </select>
                 </div>
@@ -145,7 +145,9 @@ const SubjectsManager: React.FC = () => {
                             >
                                 {classes.length === 0 && <option value="">No classes available</option>}
                                 {classes.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                    <option key={c.id} value={c.id}>
+                                        {c.name.toUpperCase()} - {c.type.toUpperCase()}
+                                    </option>
                                 ))}
                             </select>
                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-yellow-600">
@@ -195,12 +197,12 @@ const SubjectsManager: React.FC = () => {
                         ) : (
                             filteredSubjects.map((s) => (
                                 <tr key={s.id} className="hover:bg-yellow-50/50 transition-colors group">
-                                    <td className="px-6 py-4 whitespace-nowrap font-bold text-black border-r border-gray-100">
+                                    <td className="px-6 py-4 whitespace-nowrap font-black text-black border-r border-gray-100 uppercase">
                                         {s.name}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm border-r border-gray-100">
-                                        <span className="bg-yellow-100/80 text-yellow-900 border border-yellow-300 shadow-sm px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">
-                                            {s.class?.name || 'Unknown Class'}
+                                        <span className="font-black text-black uppercase tracking-wider">
+                                            {s.class?.name || '---'} - {s.class?.type || 'Offline'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

@@ -13,6 +13,7 @@ const ClassesManager = React.lazy(() => import('./pages/admin/ClassesManager'));
 const SubjectsManager = React.lazy(() => import('./pages/admin/SubjectsManager'));
 const StudentsManager = React.lazy(() => import('./pages/admin/StudentsManager'));
 const MarksManager = React.lazy(() => import('./pages/admin/MarksManager'));
+const BulkUpload = React.lazy(() => import('./pages/admin/BulkUpload'));
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
                 <Route path="subjects" element={<SubjectsManager />} />
                 <Route path="students" element={<StudentsManager />} />
                 <Route path="marks" element={<MarksManager />} />
+                <Route path="upload" element={<BulkUpload />} />
               </Route>
             </Route>
 

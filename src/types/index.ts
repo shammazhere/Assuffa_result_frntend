@@ -8,7 +8,7 @@ export interface SubjectItem {
     id: string;
     name: string;
     class_id: string;
-    class?: { name: string };
+    class?: { name: string; type?: string };
 }
 
 export interface StudentItem {
