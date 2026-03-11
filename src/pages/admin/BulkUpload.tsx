@@ -49,21 +49,24 @@ const BulkUpload: React.FC = () => {
                     const y = raw.getFullYear();
                     return `${d}/${m}/${y}`;
                 }
-                const s = String(raw || '').trim();
+                const s = String(raw || '').trim().replace(/\s/g, '');
                 // Slash-separated: D/M/YYYY or DD/MM/YYYY
                 if (s.includes('/')) {
                     const parts = s.split('/');
-                    if (parts.length === 3 && parts[2].length === 4) {
+                    if (parts.length === 3) {
                         const [d, m, y] = parts;
+                        // Return padded DD/MM/YYYY
                         return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
                     }
                 }
-                // Dash-separated YYYY-MM-DD (from cellDates JS Date serialization)
+                // Dash-separated YYYY-MM-DD
                 if (s.includes('-')) {
                     const parts = s.split('-');
-                    if (parts.length === 3 && parts[0].length === 4) {
+                    if (parts.length === 3) {
                         const [y, m, d] = parts;
-                        return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+                        if (y.length === 4) {
+                            return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+                        }
                     }
                 }
                 return s;
@@ -86,7 +89,7 @@ const BulkUpload: React.FC = () => {
 
                 const marks: any[] = [];
                 for (let i = 5; i < row.length; i++) {
-                    const subjectName = headers[i] || `Subject ${i - 4}`;
+                    const subjectName = String(headers[i] || `Subject ${i - 4}`).trim();
                     const rawVal = row[i];
                     if (rawVal !== undefined && rawVal !== '') {
                         const val = parseInt(String(rawVal));
