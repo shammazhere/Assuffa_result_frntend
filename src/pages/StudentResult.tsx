@@ -37,43 +37,59 @@ const StudentResult: React.FC = () => {
 
         try {
             const el = printRef.current;
+            // Scroll to top to ensure canvas captures everything correctly
+            window.scrollTo(0, 0);
 
             const canvas = await html2canvas(el, {
-                scale: 2, 
-                useCORS: true, 
+                scale: 2,
+                useCORS: true,
                 backgroundColor: '#ffffff',
                 logging: false,
+                allowTaint: true
             });
 
+            // Standard PDF Generation
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const imgProps = pdf.getImageProperties(imgData);
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
             pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-            
+
             const fileName = `${typedStudent.first_name.replace(/\s+/g, '_')}_RESULT.pdf`.toUpperCase();
-            pdf.save(fileName); 
+            
+            // USE BLOB FOR MAXIMUM COMPATIBILITY/FORCE DOWNLOAD
+            const pdfBlob = pdf.output('blob');
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            
+            // Cleanup
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 100);
 
         } catch (error) {
-            console.error('PDF Generation Fault:', error);
+            console.error('Download System Fault:', error);
+            // Emergency fallback - still avoiding print dialog
             try {
-                const el = printRef.current;
-                if (!el) throw new Error("Element lost");
-                const canvas = await html2canvas(el, { scale: 1.5, useCORS: true });
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                
-                const link = document.createElement('a');
-                link.href = dataUrl;
-                link.download = `${typedStudent.first_name}_RESULT.jpg`.toUpperCase();
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } catch (innerError) {
-                console.error('Image Download Fault:', innerError);
-                alert('Direct download was blocked by your browser settings. Opening the print dialog—please select "Save as PDF".');
-                window.print();
+                const canvas = await html2canvas(printRef.current!, { scale: 1, useCORS: true });
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `${typedStudent.first_name}_RESULT.jpg`.toUpperCase();
+                        link.click();
+                        URL.revokeObjectURL(url);
+                    }
+                }, 'image/jpeg', 0.9);
+            } catch (inner) {
+                console.error('Total failure', inner);
             }
         } finally {
             setIsDownloading(false);
@@ -81,7 +97,7 @@ const StudentResult: React.FC = () => {
     };
 
     const totalMarks = typedStudent.marks?.reduce((sum: number, m: MarkItem) => sum + m.total, 0) ?? 0;
-    const maxMarks = (typedStudent.marks?.length ?? 0) * 100;
+    const maxMarks = (typedStudent.marks?.length ?? 0) * 50;
     const percentageNum = maxMarks > 0 ? (totalMarks / maxMarks) * 100 : 0;
     const percentage = percentageNum.toFixed(1);
 
