@@ -9,6 +9,16 @@
     body {
         @apply antialiased text-slate-900 bg-white selection:bg-yellow-200;
         overflow-x: hidden;
+        
+        /* Force standard hex/rgb for these common variables to prevent html2canvas/oklch crashes */
+        --color-slate-900: #0f172a;
+        --color-white: #ffffff;
+        --color-yellow-200: #fef08a;
+        --color-yellow-500: #eab308;
+        --color-yellow-600: #ca8a04;
+        --color-amber-800: #92400e;
+        --color-amber-900: #78350f;
+        --color-gray-50: #f9fafb;
     }
 }
 

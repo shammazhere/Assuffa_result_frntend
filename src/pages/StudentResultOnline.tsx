@@ -8,10 +8,14 @@ import { jsPDF } from 'jspdf';
 
 const gradeColor = (grade: string | undefined) => {
     if (!grade) return { bg: '#F3F4F6', color: '#374151', border: '#D1D5DB' };
-    if (grade.startsWith('A')) return { bg: '#F0FDF4', color: '#166534', border: '#BBF7D0' };
-    if (grade.startsWith('B')) return { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' };
-    if (grade.startsWith('C')) return { bg: '#FEFCE8', color: '#854D0E', border: '#FDE68A' };
-    if (grade.startsWith('D')) return { bg: '#FFF7ED', color: '#C2410C', border: '#FED7AA' };
+    const g = grade.toUpperCase();
+    if (g === 'A+') return { bg: '#F0FDF4', color: '#166534', border: '#BBF7D0' };
+    if (g === 'A') return { bg: '#F0FDF4', color: '#166534', border: '#BBF7D0' };
+    if (g === 'B+') return { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' };
+    if (g === 'B') return { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' };
+    if (g === 'C+') return { bg: '#FEFCE8', color: '#854D0E', border: '#FDE68A' };
+    if (g === 'C') return { bg: '#FEFCE8', color: '#854D0E', border: '#FDE68A' };
+    if (g === 'D') return { bg: '#FFF7ED', color: '#C2410C', border: '#FED7AA' };
     return { bg: '#FEF2F2', color: '#991B1B', border: '#FECACA' };
 };
 
