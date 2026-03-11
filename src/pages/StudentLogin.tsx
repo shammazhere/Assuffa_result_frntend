@@ -25,9 +25,16 @@ const StudentLogin: React.FC = () => {
             } else {
                 navigate('/result');
             }
-        } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            setError(msg || 'Invalid Register Number or Date of Birth. Please try again.');
+        } catch (err: any) {
+            const data = err.response?.data;
+            const msg = data?.message;
+            const tries = data?.triedFormats;
+            
+            if (tries) {
+                setError(`${msg} (Validated against ${tries} format variants)`);
+            } else {
+                setError(msg || 'Invalid Register Number or Date of Birth. Please try again.');
+            }
         }
     };
 

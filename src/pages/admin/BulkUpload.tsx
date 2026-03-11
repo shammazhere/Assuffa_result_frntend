@@ -40,8 +40,8 @@ const BulkUpload: React.FC = () => {
 
             const headers = rows[0].map(h => String(h || '').trim());
 
-            // Normalize DOB to canonical DD/MM/YYYY regardless of how XLSX outputs it
-            // Handles: '1/1/2006' → '01/01/2006', JS Date objects, '2006-01-01' → '01/01/2006'
+            // Normalize: handle slash-separated or dash-separated date formats
+            // Converts d/m/yyyy or dd/mm/yyyy into the canonical DD/MM/YYYY string for hashing
             const normalizeDob = (raw: any): string => {
                 if (raw instanceof Date) {
                     const d = String(raw.getDate()).padStart(2, '0');
@@ -49,25 +49,23 @@ const BulkUpload: React.FC = () => {
                     const y = raw.getFullYear();
                     return `${d}/${m}/${y}`;
                 }
-                const s = String(raw || '').trim().replace(/\s/g, '');
-                // Slash-separated: D/M/YYYY or DD/MM/YYYY
-                if (s.includes('/')) {
-                    const parts = s.split('/');
-                    if (parts.length === 3) {
-                        const [d, m, y] = parts;
-                        // Return padded DD/MM/YYYY
+                let s = String(raw || '').trim().replace(/\s/g, '');
+                if (!s) return "";
+                if (/^\d{8}$/.test(s)) {
+                    return `${s.slice(0, 2)}/${s.slice(2, 4)}/${s.slice(4)}`;
+                }
+                const parts = s.split(/[/\-.]/);
+                if (parts.length === 3) {
+                    let [p1, p2, p3] = parts;
+                    if (p1.length === 4) {
+                        const [y, m, d] = [p1, p2, p3];
                         return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
                     }
-                }
-                // Dash-separated YYYY-MM-DD
-                if (s.includes('-')) {
-                    const parts = s.split('-');
-                    if (parts.length === 3) {
-                        const [y, m, d] = parts;
-                        if (y.length === 4) {
-                            return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
-                        }
+                    let d = p1, m = p2, y = p3;
+                    if (y.length === 2) {
+                        y = (parseInt(y) < 50 ? "20" : "19") + y;
                     }
+                    return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
                 }
                 return s;
             };

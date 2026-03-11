@@ -68,12 +68,27 @@ const StudentsManager: React.FC = () => {
         fetchFilteredStudents(filterClassId, val);
     };
 
-    // Normalize DOB: pad single-digit day/month to 2 digits e.g. 1/1/2000 => 01/01/2000
+    // Standardized Beast-Mode DOB Normalization: handles 2-digit years and varied separators
     const normalizeDob = (raw: string): string => {
-        const parts = raw.trim().split('/');
-        if (parts.length !== 3) return raw; // Not a slash-separated date, return as-is
-        const [d, m, y] = parts;
-        return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+        let s = raw.trim().replace(/\s/g, '');
+        if (!s) return "";
+        if (/^\d{8}$/.test(s)) {
+            return `${s.slice(0, 2)}/${s.slice(2, 4)}/${s.slice(4)}`;
+        }
+        const parts = s.split(/[/\-.]/);
+        if (parts.length === 3) {
+            let [p1, p2, p3] = parts;
+            if (p1.length === 4) {
+                const [y, m, d] = [p1, p2, p3];
+                return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+            }
+            let d = p1, m = p2, y = p3;
+            if (y.length === 2) {
+                y = (parseInt(y) < 50 ? "20" : "19") + y;
+            }
+            return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+        }
+        return s;
     };
 
     const addStudent = async (e: React.FormEvent) => {
