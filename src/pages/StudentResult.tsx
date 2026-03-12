@@ -6,14 +6,16 @@ import type { StudentItem, MarkItem } from '../types';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-const gradeColor = (grade: string | undefined, total: number) => {
+const gradeColor = (grade: string | undefined, total: any) => {
     // FRONTEND FALLBACK: Recalculate grade based on 50-mark base if backend is stale
+    const score = Number(total);
+    console.log(`[Grading] Score: ${score}, Original: ${grade}`);
     let g = grade || 'F';
-    if (total > 45) g = "A+";
-    else if (total > 40) g = "A";
-    else if (total > 35) g = "B+";
-    else if (total > 30) g = "B";
-    else if (total > 22) g = "C+";
+    if (score >= 45) g = "A+";
+    else if (score >= 40) g = "A";
+    else if (score >= 35) g = "B+";
+    else if (score >= 30) g = "B";
+    else if (score >= 22) g = "C+";
     else g = "F";
 
     g = g.toUpperCase();
