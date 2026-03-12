@@ -41,8 +41,9 @@ const SubjectsManager: React.FC = () => {
         if (!newSubjectName.trim() || !selectedClassId) return;
 
         try {
+            const upperName = newSubjectName.trim().toUpperCase();
             const response = await api.post('/admin/subjects', {
-                name: newSubjectName.trim(),
+                name: upperName,
                 class_id: selectedClassId
             });
 

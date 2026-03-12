@@ -57,10 +57,12 @@ const BulkUpload: React.FC = () => {
                 const parts = s.split(/[/\-.]/);
                 if (parts.length === 3) {
                     let [p1, p2, p3] = parts;
+                    // Handle YYYY-MM-DD
                     if (p1.length === 4) {
                         const [y, m, d] = [p1, p2, p3];
                         return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
                     }
+                    // Handle D/M/Y or DD/MM/YYYY
                     let d = p1, m = p2, y = p3;
                     if (y.length === 2) {
                         y = (parseInt(y) < 50 ? "20" : "19") + y;

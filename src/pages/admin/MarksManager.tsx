@@ -105,8 +105,8 @@ const MarksManager: React.FC = () => {
         // Only allow numbers and empty string
         if (value !== '' && !/^\d+$/.test(value)) return;
 
-        // Cap at 100
-        if (value !== '' && parseInt(value) > 100) return;
+        // Cap at 50 (New scaling)
+        if (value !== '' && parseInt(value) > 50) return;
 
         setMarksData(prev => ({
             ...prev,
@@ -122,11 +122,11 @@ const MarksManager: React.FC = () => {
         const total = parseInt(totalStr);
         if (isNaN(total)) return '-';
 
-        if (total >= 90) return "A+";
-        if (total >= 80) return "A";
-        if (total >= 70) return "B";
-        if (total >= 60) return "C";
-        if (total >= 50) return "D";
+        if (total >= 45) return "A+";
+        if (total >= 40) return "A";
+        if (total >= 35) return "B+";
+        if (total >= 30) return "B";
+        if (total >= 22) return "C+";
         return "F";
     };
 
@@ -247,7 +247,7 @@ const MarksManager: React.FC = () => {
                                         Register No
                                     </th>
                                     <th className="px-6 py-4 text-center text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200 w-48">
-                                        Marks (Total 100)
+                                        Marks (Max 50)
                                     </th>
                                     <th className="px-6 py-4 text-center text-xs font-black text-black uppercase tracking-widest w-24">
                                         Grade
