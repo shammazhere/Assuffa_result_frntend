@@ -244,7 +244,7 @@ const StudentResult: React.FC = () => {
                             textTransform: 'uppercase', margin: 0,
                             lineHeight: 1.2
                         }}>
-                            INTERNATIONAL EDUCATION BOARD
+                            INTERNATIONAL EDUCATION BOARD OF ISLAMIC STUDIES
                         </h1>
                         <p style={{
                             position: 'relative', zIndex: 1,
