@@ -50,3 +50,70 @@
 .animate-shake {
     animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }
+
+:root {
+    --bg-main: #FFFDF7;
+    --bg-card: white;
+    --bg-muted: #F3F4F6;
+    --nav-bg: rgba(255, 255, 255, 0.5); /* Lower opacity for blur effect */
+    --logo-glow: none;
+    --text-main: #111827;
+    --text-muted: #374151;
+    --border-color: #E5E7EB;
+    
+    /* Accents for cards */
+    --accent-border: #FDE68A;
+    --accent-text: #78350F;
+    --accent-muted: #92400E;
+    --icon-bg: #FFFBEB;
+    --icon-color: #D4AF37;
+    --banner-bg: linear-gradient(135deg, #F4C430 0%, #F4C430 25%, #FFF8D6 100%);
+    --banner-text: #451A03;
+    --banner-text-muted: #92400E;
+    --banner-shadow: 0 4px 15px rgba(244, 196, 48, 0.15); /* Reduced soft shadow */
+    --card-shadow: 0 4px 12px rgba(244, 196, 48, 0.1);
+}
+
+html.dark-theme {
+    /* Pitch black background with sleek Charcoal Gray cards */
+    --bg-main: #000000;
+    --bg-card: #141414; /* Sleek Dark Charcoal */
+    --bg-muted: #1E1E1E; /* Slightly lighter gray for hovers */
+    --nav-bg: rgba(0, 0, 0, 0.45); /* Pitch black glassmorphism */
+    --logo-glow: drop-shadow(0 0 20px rgba(212, 175, 55, 0.35)); /* Slight, highlighting gold light */
+    --text-main: #F8F5EC; /* Warm Ivory White */
+    --text-muted: #A1A1AA; /* Soft gray text */
+    --border-color: #27272A;
+
+    /* Accents adapted for dark mode */
+    --accent-border: #27272A;
+    --accent-text: #FAFAFA; /* Crisp white */
+    --accent-muted: #A1A1AA;
+    --icon-bg: #1E1E1E;
+    --icon-color: #D4AF37; /* Elegant Gold */
+    --banner-bg: linear-gradient(135deg, #F4C430 0%, #F4C430 25%, #FFF8D6 100%); /* Saffron Yellow to Cream Yellow */
+    --banner-text: #2B1800;
+    --banner-text-muted: #663C00;
+    --banner-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 10px rgba(244, 196, 48, 0.1); /* Reduced shadow */
+    --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(244, 196, 48, 0.05);
+}
+
+html.dark-theme body {
+    background-color: var(--bg-main) !important;
+}
+
+html.dark-theme th {
+    color: var(--text-muted) !important;
+}
+html.dark-theme button[style*="background: 'white'"],
+html.dark-theme button[style*="background: white"] {
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+html.dark-theme tr {
+    border-bottom-color: var(--border-color) !important;
+}
+html.dark-theme div[style*="background: '#FFFBEB'"] {
+    background-color: var(--bg-muted) !important;
+}

@@ -7,6 +7,10 @@ import { ProtectedAdminRoute, ProtectedStudentRoute } from './components/Protect
 const StudentLogin = React.lazy(() => import('./pages/StudentLogin'));
 const StudentResult = React.lazy(() => import('./pages/StudentResult'));
 const StudentResultOnline = React.lazy(() => import('./pages/StudentResultOnline'));
+const StudentDashboardLayout = React.lazy(() => import('./layouts/StudentDashboardLayout'));
+const StudentHome = React.lazy(() => import('./pages/StudentHome'));
+const StudentExamResults = React.lazy(() => import('./pages/StudentExamResults'));
+const StudentAttendanceDetail = React.lazy(() => import('./pages/StudentAttendanceDetail'));
 const AdminLogin = React.lazy(() => import('./pages/admin/AdminLogin'));
 const AdminDashboard = React.lazy(() => import('./layouts/AdminDashboard'));
 const ClassesManager = React.lazy(() => import('./pages/admin/ClassesManager'));
@@ -14,6 +18,11 @@ const SubjectsManager = React.lazy(() => import('./pages/admin/SubjectsManager')
 const StudentsManager = React.lazy(() => import('./pages/admin/StudentsManager'));
 const MarksManager = React.lazy(() => import('./pages/admin/MarksManager'));
 const BulkUpload = React.lazy(() => import('./pages/admin/BulkUpload'));
+const AttendanceManager = React.lazy(() => import('./pages/admin/AttendanceManager'));
+const AdminSignup = React.lazy(() => import('./pages/admin/AdminSignup'));
+const TeachersManager = React.lazy(() => import('./pages/admin/TeachersManager'));
+const SettingsManager = React.lazy(() => import('./pages/admin/SettingsManager'));
+const TeacherProfile = React.lazy(() => import('./pages/admin/TeacherProfile'));
 
 function App() {
   return (
@@ -24,22 +33,33 @@ function App() {
             {/* Public Routes */}
             <Route path="/" element={<StudentLogin />} />
             <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/signup" element={<AdminSignup />} />
 
             {/* Protected Student Routes */}
             <Route element={<ProtectedStudentRoute />}>
-              <Route path="/result" element={<StudentResult />} />
-              <Route path="/online-result" element={<StudentResultOnline />} />
+              <Route path="/dashboard" element={<StudentDashboardLayout />}>
+                <Route index element={<StudentHome />} />
+                <Route path="exam-results" element={<StudentExamResults />} />
+                <Route path="attendance" element={<StudentAttendanceDetail />} />
+              </Route>
+              <Route path="/print-result/:term" element={<StudentResult />} />
+              <Route path="/online-print-result/:term" element={<StudentResultOnline />} />
+              <Route path="/result" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/online-result" element={<Navigate to="/dashboard" replace />} />
             </Route>
 
             {/* Protected Admin Routes */}
             <Route path="/admin" element={<ProtectedAdminRoute />}>
               <Route element={<AdminDashboard />}>
-                <Route index element={<Navigate to="classes" replace />} />
+                <Route index element={<TeacherProfile />} />
                 <Route path="classes" element={<ClassesManager />} />
                 <Route path="subjects" element={<SubjectsManager />} />
                 <Route path="students" element={<StudentsManager />} />
                 <Route path="marks" element={<MarksManager />} />
                 <Route path="upload" element={<BulkUpload />} />
+                <Route path="attendance" element={<AttendanceManager />} />
+                <Route path="teachers" element={<TeachersManager />} />
+                <Route path="settings" element={<SettingsManager />} />
               </Route>
             </Route>
 

@@ -3,8 +3,10 @@ import api from '../../config/api';
 import { Plus, Trash2, Library, GraduationCap } from 'lucide-react';
 import type { SubjectItem, ClassItem } from '../../types';
 import StatusAlert from '../../components/admin/StatusAlert';
+import { useAuth } from '../../context/AuthContext';
 
 const SubjectsManager: React.FC = () => {
+    const { adminRole } = useAuth();
     const [subjects, setSubjects] = useState<SubjectItem[]>([]);
     const [classes, setClasses] = useState<ClassItem[]>([]);
     const [newSubjectName, setNewSubjectName] = useState('');
@@ -117,6 +119,7 @@ const SubjectsManager: React.FC = () => {
             <StatusAlert type="success" message={success} onClose={() => setSuccess('')} />
 
             {/* Add Subject Form */}
+            {adminRole === 'SUPERADMIN' && (
             <div className="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border border-yellow-200 shadow-sm mb-8">
                 <h3 className="font-black text-black mb-4 text-sm uppercase tracking-widest border-b border-yellow-200 inline-block pb-1 flex items-center gap-2 max-w-max">
                     <Plus className="w-4 h-4" /> Add New Subject
@@ -167,6 +170,7 @@ const SubjectsManager: React.FC = () => {
                     </div>
                 </form>
             </div>
+            )}
 
             {/* Subjects List */}
             <div className="overflow-x-auto rounded-xl border-2 border-yellow-200 shadow-md bg-white">
@@ -179,9 +183,11 @@ const SubjectsManager: React.FC = () => {
                             <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">
                                 Class Focus
                             </th>
+                            {adminRole === 'SUPERADMIN' && (
                             <th className="px-6 py-4 text-right text-xs font-black text-black uppercase tracking-widest w-24">
                                 Actions
                             </th>
+                            )}
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
@@ -206,6 +212,7 @@ const SubjectsManager: React.FC = () => {
                                             {s.class?.name || '---'} - {s.class?.type || 'Offline'}
                                         </span>
                                     </td>
+                                    {adminRole === 'SUPERADMIN' && (
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button
                                             onClick={() => deleteSubject(s.id)}
@@ -215,6 +222,7 @@ const SubjectsManager: React.FC = () => {
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </td>
+                                    )}
                                 </tr>
                             ))
                         )}

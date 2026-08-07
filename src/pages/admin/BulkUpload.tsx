@@ -11,6 +11,7 @@ const BulkUpload: React.FC = () => {
 
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [selectedTerm, setSelectedTerm] = useState('Final');
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -111,7 +112,7 @@ const BulkUpload: React.FC = () => {
                 return;
             }
 
-            const response = await api.post('/admin/bulk-complete', formattedData);
+            const response = await api.post(`/admin/bulk-complete?term=${encodeURIComponent(selectedTerm)}`, formattedData);
             setSuccess(`Success! Synchronized ${response.data.count} student profiles and their marks.`);
             setBulkFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -165,28 +166,39 @@ const BulkUpload: React.FC = () => {
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-5 mb-8">
-                            <div className="flex-1 relative">
-                                <input
-                                    type="file"
-                                    accept=".csv, .xlsx, .xls"
-                                    onChange={handleFileChange}
-                                    className="hidden"
-                                    ref={fileInputRef}
-                                />
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="w-full h-16 border-2 border-dashed border-gray-700 bg-black/50 rounded-xl flex items-center px-6 gap-4 text-sm font-bold uppercase text-white hover:border-yellow-500 transition-all group"
+                            <div className="flex-1 relative flex flex-col gap-3">
+                                <select
+                                    value={selectedTerm}
+                                    onChange={(e) => setSelectedTerm(e.target.value)}
+                                    className="w-full px-4 py-3 bg-black/50 border-2 border-gray-700 rounded-xl font-bold text-white focus:outline-none focus:border-yellow-500 uppercase tracking-widest text-sm"
                                 >
-                                    <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center group-hover:bg-yellow-500 transition-colors text-gray-400">
-                                        <FileDown className="w-4 h-4 group-hover:text-black" />
-                                    </div>
-                                    <span className="truncate">{bulkFile ? bulkFile.name : 'Choose Comprehensive Excel/CSV...'}</span>
-                                </button>
+                                    <option value="1st Term">1st Term Results</option>
+                                    <option value="2nd Term">2nd Term Results</option>
+                                    <option value="Final">Final Exam Results</option>
+                                </select>
+                                <div className="relative w-full">
+                                    <input
+                                        type="file"
+                                        accept=".csv, .xlsx, .xls"
+                                        onChange={handleFileChange}
+                                        className="hidden"
+                                        ref={fileInputRef}
+                                    />
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="w-full h-16 border-2 border-dashed border-gray-700 bg-black/50 rounded-xl flex items-center px-6 gap-4 text-sm font-bold uppercase text-white hover:border-yellow-500 transition-all group"
+                                    >
+                                        <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center group-hover:bg-yellow-500 transition-colors text-gray-400">
+                                            <FileDown className="w-4 h-4 group-hover:text-black" />
+                                        </div>
+                                        <span className="truncate">{bulkFile ? bulkFile.name : 'Choose Comprehensive Excel/CSV...'}</span>
+                                    </button>
+                                </div>
                             </div>
                             <button
                                 onClick={processComprehensiveUpload}
                                 disabled={!bulkFile || isProcessing}
-                                className="px-8 h-16 bg-yellow-500 text-black rounded-xl font-black uppercase tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.3)] disabled:opacity-30 disabled:grayscale transition-all active:scale-95 flex items-center justify-center min-w-[240px]"
+                                className="px-8 h-auto bg-yellow-500 text-black rounded-xl font-black uppercase tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.3)] disabled:opacity-30 disabled:grayscale transition-all active:scale-95 flex items-center justify-center min-w-[240px]"
                             >
                                 {isProcessing ? 'Verifying & Saving...' : 'Synchronize Database'}
                             </button>

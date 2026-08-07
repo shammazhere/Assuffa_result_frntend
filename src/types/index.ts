@@ -20,6 +20,8 @@ export interface StudentItem {
     classType?: "Offline" | "Online"; // For redirection logic
     class?: { name: string; type: "Offline" | "Online" }; // For admin portal
     marks?: MarkItem[];
+    attendance?: AttendanceRecord[];
+    updatedAt?: string;
 }
 
 export interface MarkItem {
@@ -29,5 +31,11 @@ export interface MarkItem {
     subject?: string | { name: string }; // String for portal, object for admin
     total: number;
     grade?: string;
+    term?: string;
     student?: { first_name: string; usn: string };
+}
+
+export interface AttendanceRecord {
+    date: string;
+    status: "Present" | "Absent";
 }

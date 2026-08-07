@@ -5,6 +5,7 @@ import type { StudentItem } from '../types';
 interface AuthContextType {
     student: StudentItem | null;
     adminToken: string | null;
+    adminRole: string | null;
     studentLogin: (usn: string, dob: string) => Promise<StudentItem>;
     adminLogin: (username: string, password: string) => Promise<void>;
     logout: () => void;
@@ -19,6 +20,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return saved ? JSON.parse(saved) : null;
     });
     const [adminToken, setAdminToken] = useState<string | null>(localStorage.getItem('adminToken'));
+    const [adminRole, setAdminRole] = useState<string | null>(localStorage.getItem('adminRole'));
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -27,7 +29,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
             localStorage.removeItem('adminToken');
         }
-    }, [adminToken]);
+        
+        if (adminRole) {
+            localStorage.setItem('adminRole', adminRole);
+        } else {
+            localStorage.removeItem('adminRole');
+        }
+    }, [adminToken, adminRole]);
 
     useEffect(() => {
         if (student) {
@@ -53,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const response = await api.post('/auth/admin/login', { username, password });
             setAdminToken(response.data.token);
+            setAdminRole(response.data.role);
         } finally {
             setIsLoading(false);
         }
@@ -68,10 +77,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setStudent(null);
         setAdminToken(null);
+        setAdminRole(null);
     };
 
     return (
-        <AuthContext.Provider value={{ student, adminToken, studentLogin, adminLogin, logout, isLoading }}>
+        <AuthContext.Provider value={{ student, adminToken, adminRole, studentLogin, adminLogin, logout, isLoading }}>
             {children}
         </AuthContext.Provider>
     );

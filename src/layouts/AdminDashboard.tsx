@@ -9,22 +9,32 @@ import {
     LogOut,
     Menu,
     Upload,
+    CalendarCheck,
+    Settings,
+    User,
     X
 } from 'lucide-react';
 import { useState } from 'react';
 
 const AdminDashboard: React.FC = () => {
-    const { logout } = useAuth();
+    const { logout, adminRole } = useAuth();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const navigation = [
+    let navigation = [
+        { name: 'Profile', href: '/admin', exact: true, icon: User },
         { name: 'Classes', href: '/admin/classes', icon: BookOpen },
         { name: 'Subjects', href: '/admin/subjects', icon: GraduationCap },
         { name: 'Students', href: '/admin/students', icon: Users },
         { name: 'Marks', href: '/admin/marks', icon: BarChart },
-        { name: 'Master Sync', href: '/admin/upload', icon: Upload },
+        { name: 'Attendance', href: '/admin/attendance', icon: CalendarCheck },
     ];
+    
+    if (adminRole === 'SUPERADMIN') {
+        navigation.push({ name: 'Teachers', href: '/admin/teachers', icon: Users });
+        navigation.push({ name: 'Master Sync', href: '/admin/upload', icon: Upload });
+        navigation.push({ name: 'Settings', href: '/admin/settings', icon: Settings });
+    }
 
     return (
         <div
@@ -50,7 +60,7 @@ const AdminDashboard: React.FC = () => {
             {/* Mobile Header Top Bar */}
             <div className="lg:hidden fixed top-0 left-0 w-full bg-white border-b border-yellow-300 text-black z-40 flex justify-between items-center px-4 py-3 shadow-sm">
                 <div className="flex items-center gap-3">
-                    <img src="/logo.png" alt="Logo" className="h-8 object-contain" />
+                    <img src="/Asswuffah_Logo.webp" alt="Logo" className="h-8 object-contain" />
                     <span className="font-black text-sm tracking-tight uppercase text-yellow-700">Admin Control</span>
                 </div>
                 <button
@@ -65,7 +75,7 @@ const AdminDashboard: React.FC = () => {
             <div className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-white text-black transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 ease-out shadow-2xl lg:shadow-[4px_0_24px_rgba(0,0,0,0.02)] border-r border-yellow-200 flex flex-col`}>
                 <div className="flex items-center justify-center py-8 bg-white border-b-2 border-yellow-300 hidden lg:flex">
                     <img
-                        src="/logo.png"
+                        src="/Asswuffah_Logo.webp"
                         alt="Logo"
                         className="h-16 object-contain"
                     />
@@ -75,8 +85,10 @@ const AdminDashboard: React.FC = () => {
                     <p className="px-4 text-[10px] font-black text-yellow-600 uppercase tracking-[0.2em] mb-4 opacity-70">
                         Administration
                     </p>
-                    {navigation.map((item) => {
-                        const isActive = location.pathname.startsWith(item.href);
+                    {navigation.map((item: any) => {
+                        const isActive = item.exact 
+                            ? location.pathname === item.href || location.pathname === `${item.href}/`
+                            : location.pathname.startsWith(item.href);
                         return (
                             <Link
                                 key={item.name}

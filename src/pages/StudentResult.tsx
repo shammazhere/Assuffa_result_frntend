@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Download, LogOut } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Download, LogOut, ArrowLeft } from 'lucide-react';
 import type { StudentItem, MarkItem } from '../types';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -32,6 +32,7 @@ const gradeColor = (grade: string | undefined, total: any) => {
 const StudentResult: React.FC = () => {
     const { student, logout } = useAuth();
     const navigate = useNavigate();
+    const { term } = useParams<{ term: string }>();
     const printRef = useRef<HTMLDivElement>(null);
     const [isDownloading, setIsDownloading] = useState(false);
 
@@ -41,9 +42,9 @@ const StudentResult: React.FC = () => {
 
     useEffect(() => {
         if (typedStudent.classType === 'Online') {
-            navigate('/online-result');
+            navigate(`/online-print-result/${encodeURIComponent(term || 'Final')}`);
         }
-    }, [typedStudent, navigate]);
+    }, [typedStudent, navigate, term]);
 
     const handleDownload = async () => {
         if (!printRef.current || isDownloading) return;
@@ -121,8 +122,9 @@ const StudentResult: React.FC = () => {
         }
     };
 
-    const totalMarks = typedStudent.marks?.reduce((sum: number, m: MarkItem) => sum + m.total, 0) ?? 0;
-    const maxMarks = (typedStudent.marks?.length ?? 0) * 50;
+    const termMarks = typedStudent.marks?.filter(m => (m.term || 'Final') === term) || [];
+    const totalMarks = termMarks.reduce((sum: number, m: MarkItem) => sum + m.total, 0) ?? 0;
+    const maxMarks = termMarks.length * 50;
     const percentageNum = maxMarks > 0 ? (totalMarks / maxMarks) * 100 : 0;
     const percentage = percentageNum.toFixed(1);
 
@@ -158,7 +160,21 @@ const StudentResult: React.FC = () => {
 
             <div style={{ maxWidth: '900px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
                 {/* Action Buttons */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '1.25rem' }} className="print:hidden">
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1.25rem' }} className="print:hidden">
+                    <button
+                        onClick={() => navigate('/dashboard/exam-results')}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            padding: '0.6rem 1rem',
+                            background: 'white',
+                            color: '#4b5563', fontWeight: 800, fontSize: '0.75rem',
+                            border: '1px solid #d1d5db', borderRadius: '0.75rem', cursor: 'pointer',
+                        }}
+                    >
+                        <ArrowLeft style={{ width: 14, height: 14 }} /> BACK TO DASHBOARD
+                    </button>
+                    
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                         onClick={handleDownload}
                         disabled={isDownloading}
@@ -188,6 +204,7 @@ const StudentResult: React.FC = () => {
                     >
                         <LogOut style={{ width: 14, height: 14 }} /> LOGOUT
                     </button>
+                    </div>
                 </div>
 
                 {/* Main Card */}
@@ -251,7 +268,7 @@ const StudentResult: React.FC = () => {
                             color: '#B45309', fontWeight: 800, letterSpacing: '0.2em',
                             textTransform: 'uppercase', fontSize: '0.75rem', margin: '0.75rem 0 0',
                         }}>
-                            Official Statement of Marks
+                            Official Statement of Marks - {term}
                         </p>
                     </div>
 
@@ -313,8 +330,8 @@ const StudentResult: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {typedStudent.marks && typedStudent.marks.length > 0 ? (
-                                        typedStudent.marks.map((mark: MarkItem, idx: number) => {
+                                    {termMarks.length > 0 ? (
+                                        termMarks.map((mark: MarkItem, idx: number) => {
                                             const gc = gradeColor(mark.grade, mark.total);
                                             return (
                                                 <tr key={idx} style={{ background: idx % 2 === 0 ? '#fff' : '#FFFBEB', borderBottom: '1px solid #FDE68A' }}>
@@ -340,12 +357,12 @@ const StudentResult: React.FC = () => {
                                     ) : (
                                         <tr>
                                             <td colSpan={3} style={{ padding: '3rem', textAlign: 'center', color: '#9CA3AF', fontStyle: 'italic' }}>
-                                                No marks records found.
+                                                No marks records found for this term.
                                             </td>
                                         </tr>
                                     )}
                                 </tbody>
-                                {typedStudent.marks && typedStudent.marks.length > 0 && (
+                                {termMarks.length > 0 && (
                                     <tfoot>
                                         <tr style={{ background: '#FFFBE6' }}>
                                             <td style={{ padding: '1rem 1.25rem', fontWeight: 900, color: '#92400E', textTransform: 'uppercase', fontSize: '0.75rem' }}>

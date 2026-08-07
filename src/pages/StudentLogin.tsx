@@ -21,9 +21,9 @@ const StudentLogin: React.FC = () => {
             }
             const studentData = await studentLogin(usn, dob);
             if (studentData.classType === 'Online') {
-                navigate('/online-result');
+                navigate('/dashboard');
             } else {
-                navigate('/result');
+                navigate('/dashboard');
             }
         } catch (err: any) {
             const data = err.response?.data;

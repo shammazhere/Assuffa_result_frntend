@@ -3,8 +3,10 @@ import api from '../../config/api';
 import { Plus, Trash2, BookOpen } from 'lucide-react';
 import type { ClassItem } from '../../types';
 import StatusAlert from '../../components/admin/StatusAlert';
+import { useAuth } from '../../context/AuthContext';
 
 const ClassesManager: React.FC = () => {
+    const { adminRole } = useAuth();
     const [classes, setClasses] = useState<ClassItem[]>([]);
     const [newClassName, setNewClassName] = useState('');
     const [newClassType, setNewClassType] = useState<'Offline' | 'Online'>('Offline');
@@ -82,7 +84,21 @@ const ClassesManager: React.FC = () => {
             <StatusAlert type="error" message={error} onClose={() => setError('')} />
             <StatusAlert type="success" message={success} onClose={() => setSuccess('')} />
 
-            {/* Add Class Form */}
+            {adminRole === 'TEACHER' && classes.length === 0 && (
+                <div className="bg-yellow-50 border-2 border-yellow-300 p-6 rounded-2xl mb-6 flex items-start gap-4 shadow-sm">
+                    <div className="p-3 bg-yellow-400 text-yellow-950 rounded-xl font-bold text-xl">🔒</div>
+                    <div>
+                        <h3 className="font-black text-gray-900 text-lg">Waiting for Admin Assignment</h3>
+                        <p className="text-gray-700 text-sm font-semibold mt-1">
+                            Your teacher account is active, but you have not been assigned to any classes yet. 
+                            Please contact the Superadmin to assign classes to your account.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Class Form - Only for Superadmin */}
+            {adminRole === 'SUPERADMIN' && (
             <div className="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border border-yellow-200 shadow-sm mb-10">
                 <h3 className="font-black text-black mb-4 text-sm uppercase tracking-widest border-b border-yellow-200 inline-block pb-1 flex items-center gap-2 max-w-max">
                     <Plus className="w-4 h-4" /> Add New Class
@@ -122,6 +138,7 @@ const ClassesManager: React.FC = () => {
                     </div>
                 </form>
             </div>
+            )}
 
             {/* Classes List */}
             <div className="overflow-x-auto rounded-xl border-2 border-yellow-200 shadow-md bg-white">
@@ -134,9 +151,11 @@ const ClassesManager: React.FC = () => {
                             <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">
                                 Type
                             </th>
+                            {adminRole === 'SUPERADMIN' && (
                             <th className="px-6 py-4 text-right text-xs font-black text-black uppercase tracking-widest w-24">
                                 Actions
                             </th>
+                            )}
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
@@ -160,6 +179,7 @@ const ClassesManager: React.FC = () => {
                                             {c.type}
                                         </span>
                                     </td>
+                                    {adminRole === 'SUPERADMIN' && (
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button
                                             onClick={() => deleteClass(c.id)}
@@ -169,6 +189,7 @@ const ClassesManager: React.FC = () => {
                                             <Trash2 className="w-5 h-5" />
                                         </button>
                                     </td>
+                                    )}
                                 </tr>
                             ))
                         )}

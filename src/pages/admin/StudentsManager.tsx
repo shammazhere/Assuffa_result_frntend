@@ -3,8 +3,10 @@ import api from '../../config/api';
 import { Trash2, Users, Plus } from 'lucide-react';
 import type { StudentItem, ClassItem } from '../../types';
 import StatusAlert from '../../components/admin/StatusAlert';
+import { useAuth } from '../../context/AuthContext';
 
 const StudentsManager: React.FC = () => {
+    const { adminRole } = useAuth();
     const [students, setStudents] = useState<StudentItem[]>([]);
     const [classes, setClasses] = useState<ClassItem[]>([]);
 
@@ -181,6 +183,7 @@ const StudentsManager: React.FC = () => {
             <StatusAlert type="success" message={success} onClose={() => setSuccess('')} />
 
             {/* Add Student Form */}
+            {adminRole === 'SUPERADMIN' && (
             <div className="bg-gradient-to-br from-yellow-50 to-white p-6 rounded-xl border border-yellow-200 shadow-sm mb-8">
                 <h3 className="font-black text-black mb-4 text-sm uppercase tracking-widest border-b border-yellow-200 pb-2 flex items-center gap-2">
                     <Plus className="w-4 h-4" /> Add New Student
@@ -245,6 +248,7 @@ const StudentsManager: React.FC = () => {
                     </div>
                 </form>
             </div>
+            )}
 
             {/* Students List */}
             <div className="overflow-x-auto rounded-xl border-2 border-yellow-200 shadow-md bg-white">
@@ -254,7 +258,9 @@ const StudentsManager: React.FC = () => {
                             <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">Name</th>
                             <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">Reg No</th>
                             <th className="px-6 py-4 text-left text-xs font-black text-black uppercase tracking-widest border-r border-yellow-200">Class</th>
+                            {adminRole === 'SUPERADMIN' && (
                             <th className="px-6 py-4 text-right text-xs font-black text-black uppercase tracking-widest w-24">Actions</th>
+                            )}
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
@@ -272,11 +278,13 @@ const StudentsManager: React.FC = () => {
                                             {s.class?.name || '---'} - {s.class?.type || 'Offline'}
                                         </span>
                                     </td>
+                                    {adminRole === 'SUPERADMIN' && (
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                                         <button onClick={() => deleteStudent(s.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition border border-red-100">
                                             <Trash2 className="w-5 h-5" />
                                         </button>
                                     </td>
+                                    )}
                                 </tr>
                             ))
                         )}

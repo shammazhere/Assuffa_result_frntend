@@ -3,8 +3,10 @@ import api from '../../config/api';
 import { BarChart, Save } from 'lucide-react';
 import type { ClassItem, SubjectItem, StudentItem, MarkItem } from '../../types';
 import StatusAlert from '../../components/admin/StatusAlert';
+import { useAuth } from '../../context/AuthContext';
 
 const MarksManager: React.FC = () => {
+    const { adminRole } = useAuth();
     const [classes, setClasses] = useState<ClassItem[]>([]);
     const [subjects, setSubjects] = useState<SubjectItem[]>([]);
     const [students, setStudents] = useState<StudentItem[]>([]);
@@ -13,6 +15,7 @@ const MarksManager: React.FC = () => {
     // Selection State
     const [selectedClassId, setSelectedClassId] = useState('');
     const [selectedSubjectId, setSelectedSubjectId] = useState('');
+    const [selectedTerm, setSelectedTerm] = useState('Final');
 
     // Marks Input State - Map of student_id -> total marks
     const [marksData, setMarksData] = useState<Record<string, string>>({});
@@ -38,11 +41,11 @@ const MarksManager: React.FC = () => {
     }, [selectedClassId]);
 
     useEffect(() => {
-        if (selectedClassId && selectedSubjectId) {
-            fetchExistingMarks(selectedClassId);
+        if (selectedClassId && selectedSubjectId && selectedTerm) {
+            fetchExistingMarks(selectedClassId, selectedTerm);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedClassId, selectedSubjectId]);
+    }, [selectedClassId, selectedSubjectId, selectedTerm]);
 
     const fetchClasses = async () => {
         try {
@@ -80,9 +83,9 @@ const MarksManager: React.FC = () => {
         }
     };
 
-    const fetchExistingMarks = async (classId: string) => {
+    const fetchExistingMarks = async (classId: string, term: string) => {
         try {
-            const res = await api.get(`/admin/marks?class_id=${classId}`);
+            const res = await api.get(`/admin/marks?class_id=${classId}&term=${term}`);
             setExistingMarks(res.data);
 
             // Populate input fields with existing data for the selected subject
@@ -142,6 +145,7 @@ const MarksManager: React.FC = () => {
             .map(([sid, val]) => ({
                 student_id: sid,
                 subject_id: selectedSubjectId,
+                term: selectedTerm,
                 total: parseInt(val)
             }));
 
@@ -154,7 +158,7 @@ const MarksManager: React.FC = () => {
         try {
             await api.post('/admin/marks/bulk', payload);
             setSuccess(`Successfully updated ${payload.length} marks!`);
-            fetchExistingMarks(selectedClassId); // UI Refresh
+            fetchExistingMarks(selectedClassId, selectedTerm); // UI Refresh
         } catch (err: any) {
             setError(err.response?.data?.error || 'Failed to save marks. Check your internet connection.');
         } finally {
@@ -188,7 +192,7 @@ const MarksManager: React.FC = () => {
                 <h3 className="font-black text-black mb-4 text-sm uppercase tracking-widest border-b border-yellow-200 inline-block pb-1 flex items-center gap-2 max-w-max">
                     Assign Marks
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <div>
                         <label className="block text-xs font-black text-black uppercase tracking-widest mb-1 pl-1">Select Class</label>
                         <select
@@ -215,6 +219,19 @@ const MarksManager: React.FC = () => {
                             {subjects.map(s => (
                                 <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-black text-black uppercase tracking-widest mb-1 pl-1">Select Term</label>
+                        <select
+                            value={selectedTerm}
+                            onChange={(e) => setSelectedTerm(e.target.value)}
+                            className="w-full px-4 py-3 bg-white border-2 border-yellow-200 rounded-lg shadow-sm focus:ring-0 focus:border-yellow-500 outline-none text-black font-bold cursor-pointer"
+                        >
+                            <option value="1st Term">1st Term</option>
+                            <option value="2nd Term">2nd Term</option>
+                            <option value="Final">Final</option>
                         </select>
                     </div>
                 </div>
@@ -305,7 +322,11 @@ const MarksManager: React.FC = () => {
                 </>
             ) : (
                 <div className="text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                    <p className="text-gray-400 font-bold">Please select a class and subject to manage marks.</p>
+                    <p className="text-gray-500 font-bold uppercase tracking-widest">
+                        {adminRole === 'TEACHER' && classes.length === 0
+                            ? "🔒 Waiting for Admin Assignment: No classes assigned yet"
+                            : "Please select a class and subject to manage marks."}
+                    </p>
                 </div>
             )}
         </div>

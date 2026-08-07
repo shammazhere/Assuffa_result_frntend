@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LogIn } from 'lucide-react';
 
@@ -16,7 +16,7 @@ const AdminLogin: React.FC = () => {
 
         try {
             await adminLogin(username, password);
-            navigate('/admin/classes');
+            navigate('/admin');
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
             setError(msg || 'Invalid username or password');
@@ -226,6 +226,21 @@ const AdminLogin: React.FC = () => {
                     >
                         ← Return to Student Portal
                     </a>
+                </div>
+                
+                <div style={{
+                    marginTop: '1rem',
+                    textAlign: 'center',
+                }}>
+                    <Link to="/admin/signup" style={{
+                        color: '#EAB308', fontSize: '0.7rem',
+                        fontWeight: 700, letterSpacing: '0.1em',
+                        textTransform: 'uppercase', textDecoration: 'none',
+                        transition: 'color 0.2s',
+                    }}
+                    >
+                        New Teacher? Sign Up Here
+                    </Link>
                 </div>
             </div>
         </div>
